@@ -6,16 +6,14 @@
 **Équipe :** 4 personnes — **Product Owner : l'enseignant**
 **Calendrier :** 5 séances de TP = **4 sprints** + **1 séance d'évaluation finale**
 
-> Ce document est un point de départ à ajuster en équipe. Tout ce qui touche au contenu fonctionnel (backlog, priorités) doit être validé/amendé par le PO (l'enseignant) lors des réunions de sprint — il peut changer d'avis ou ajouter des contraintes, c'est prévu par le processus.
+> Ce document est à ajuster en équipe. Tout ce qui touche au contenu fonctionnel (backlog, priorités) doit être validé/amendé par le PO (l'enseignant) lors des réunions de sprint — il peut changer d'avis ou ajouter des contraintes, c'est prévu par le processus.
 
 ---
 
 ## 1. Cadrage
 
-- Projet à développer **from scratch** (pas de wrapper autour d'un outil existant), complexité technique volontairement modeste.
-- On peut s'appuyer sur des services existants pour l'accès à certaines données (ex: un provider de stockage objet), mais pas pour la logique métier du partage de fichiers elle-même.
-- L'évaluation porte à 50% sur les **productions du projet** : code, modélisations (diagrammes), documentation, rapports de tests, CR de réunions, backlog, définition des sprints, estimations de temps. **Les aspects organisationnels comptent autant voire plus que le code.**
-- Donner accès aux outils de suivi à l'enseignant, ou prévoir des exports en format ouvert.
+- Projet à développer **de A à Z** (pas de wrapper autour d'un outil existant).
+- On représente des membres de la DOSI de l'université et l'application sera déployée sur [le serveur pedago de l'université](https://pedago.univ-avignon.fr/)
 
 ---
 
@@ -30,8 +28,6 @@ Chaque séance = un point de rencontre avec le PO. Comme il y a 4 sprints pour 5
 | 3 | Sprint 3 | Revue/démo Sprint 2 + rétro équipe + planning Sprint 3 | Contrôle d'accès sur le partage (expiration, permissions) |
 | 4 | Sprint 4 | Revue/démo Sprint 3 + rétro équipe + planning Sprint 4 | Robustesse, sécurité, quotas, finitions |
 | 5 | — (clôture) | **Démo finale** (résultat Sprint 4) + **rétrospective globale** + perspectives | Corrections mineures uniquement, préparation de la présentation |
-
-Chaque sprint dure donc une semaine (le temps entre deux séances) : le travail réel se fait hors séance, la séance elle-même sert de cérémonie de revue + planning avec le PO.
 
 ### Cérémonies à tenir à chaque sprint
 - **Sprint Review** (avec le PO, en séance) : démo de l'incrément, recueil de feedback.
@@ -57,10 +53,10 @@ Scrum ne prévoit pas de rôles techniques figés, mais avec 4 personnes il est 
 
 Décidé en équipe pour le Sprint 1 :
 
-- **Dépôt de code** : GitHub — [z0ja/processus-developpement-logiciel](https://github.com/z0ja/processus-developpement-logiciel.git) (penser à donner l'accès à l'enseignant).
+- **Dépôt de code** : GitHub — [z0ja/processus-developpement-logiciel](https://github.com/z0ja/processus-developpement-logiciel.git).
 - **Backlog / suivi** : Jira (backlog créé — export CSV/JSON à prévoir pour le rendu si l'enseignant n'a pas d'accès direct).
 - **Documentation** : dossier `docs/` versionné dans le repo (ADR dans `docs/decisions/`, CR dans `docs/comptes-rendus/`).
-- **Communication d'équipe** : à confirmer (Discord/Slack/groupe dédié) — sert aussi de trace pour les CR informels.
+- **Communication d'équipe** : Discord — sert aussi de trace pour les CR informels.
 - **CR de réunions** : un fichier par séance (`docs/comptes-rendus/sprint-N.md`), rempli pendant/juste après chaque réunion PO.
 
 ---
@@ -68,11 +64,6 @@ Décidé en équipe pour le Sprint 1 :
 ## 5. Choix technique
 
 **Décision (validée par l'équipe) : Next.js (frontend + API routes) + PostgreSQL via Prisma.** Un seul langage/runtime (TypeScript de bout en bout), ORM type-safe avec migrations, déploiement unique — ce choix minimise la plomberie d'intégration pour se concentrer sur les fonctionnalités et le process Scrum.
-
-Points à clarifier dès le Sprint 1 :
-- Stockage des fichiers : disque local en dev, migration possible vers un stockage S3-compatible (ex. MinIO) si besoin.
-- Authentification : NextAuth.js ou JWT maison, à trancher selon les besoins d'Epic A.
-- Hébergement de démo : Vercel (simple pour Next.js) ou Docker/local, à valider avec le PO.
 
 Documenter ce choix (et sa justification) dans `docs/decisions/adr-001-stack-technique.md` (format ADR — Architecture Decision Record).
 
