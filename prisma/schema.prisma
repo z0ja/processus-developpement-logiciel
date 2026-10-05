@@ -1,0 +1,36 @@
+// Schéma de données — cf. docs/decisions/adr-001-stack-technique.md
+// Toute évolution passe par une migration : npx prisma migrate dev --name <nom>
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Epic A — Comptes utilisateurs
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  files File[]
+}
+
+// Epic B — Gestion des fichiers
+model File {
+  id          String   @id @default(cuid())
+  name        String
+  mimeType    String
+  size        Int
+  storagePath String   @unique
+  createdAt   DateTime @default(now())
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  @@index([ownerId])
+}
