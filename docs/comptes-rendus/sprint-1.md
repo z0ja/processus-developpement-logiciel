@@ -53,7 +53,7 @@ _(à compléter)_
 |---|---|---|---|
 | US-A1 — Créer un compte | 1h30 | Evan | À faire |
 | US-A2 — Se connecter / se déconnecter | 1h30 | Wanis | À faire |
-| US-B1 — Uploader un fichier | 1h30 | Yanis | Terminé |
+| US-B1 — Uploader un fichier | 1h30 | Yanis | En revue ([PR #1](https://github.com/z0ja/processus-developpement-logiciel/pull/1)) |
 | US-B3 — Télécharger un fichier | 1h30 | Ayoub | À faire |
 
 ## Suivi du sprint
@@ -72,6 +72,7 @@ _(à compléter)_
 | Action | Responsable | Échéance |
 |---|---|---|
 | Relire et fusionner la PR #1 (US-B1) | Ayoub | _(à compléter)_ |
-| Brancher `getCurrentUser()` sur la session une fois US-A2 livrée | Responsable US-A2 + Yanis | _(à compléter)_ |
+| Brancher `getCurrentUser()` sur la session une fois US-A2 livrée | Wanis + Yanis | _(à compléter)_ |
 | Se coordonner sur la migration Prisma initiale (une seule migration `init`) | Équipe | Avant fusion de la PR #1 |
 | Implémenter US-B3 (téléchargement) | Ayoub | Fin du Sprint 1 |
+| Passer le relais US-B1 → US-B3 : réutiliser `resolveStoragePath()` (`src/lib/storage.ts`) pour lire les fichiers stockés | Yanis → Ayoub | Avant le début d'US-B3 |
