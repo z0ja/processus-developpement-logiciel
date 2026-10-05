@@ -1,10 +1,8 @@
 # Séance 1 — Réunion d'ouverture avec le PO
 
-- **Date :** _(à compléter)_
-- **Présents :** _(équipe + PO)_
-- **Scrum Master :** _(toi)_
+- **Date :** 05/10/2026
+- **Présents :** Yanis LAFTIMI, Wanis GUERRAM, Evan HONORAT, Ayoub ACHOUCKI
 
-> Ce fichier sert de support de préparation ET de compte-rendu : les questions/déroulé sont préparés à l'avance, les réponses et décisions se remplissent pendant/juste après la réunion.
 
 ## Objectifs de la réunion
 
@@ -13,8 +11,7 @@
 - Valider (ou faire évoluer) le backlog produit proposé.
 - Définir le sprint goal et le contenu du Sprint 1.
 
-## Déroulé proposé
-
+## Déroulé
 | Durée indicative | Étape |
 |---|---|
 | 5 min | Présentation rapide de l'équipe, des rôles et des outils (repo GitHub, backlog Jira) |
@@ -52,12 +49,29 @@ _(à compléter)_
 
 ## Sprint 1 — Backlog engagé
 
-| US | Estimation (pts) | Responsable(s) |
-|---|---|---|
-| | | |
+| US | Estimation (heure) | Responsable(s) | Statut |
+|---|---|---|---|
+| US-A1 — Créer un compte | 1h30 | Evan | À faire |
+| US-A2 — Se connecter / se déconnecter | 1h30 | Wanis | À faire |
+| US-B1 — Uploader un fichier | 1h30 | Yanis | Terminé |
+| US-B3 — Télécharger un fichier | 1h30 | Ayoub | À faire |
+
+## Suivi du sprint
+
+### US-B1 — Uploader un fichier (2026-10-05)
+
+- **Réalisé :** route `POST /api/files`, stockage des fichiers sur disque local (`UPLOAD_DIR`) avec métadonnées en base (table `File`), formulaire d'upload sur la page d'accueil, migration Prisma initiale (`User`, `File`).
+- **Tests :** manuels (fichier texte, binaire de 3 Mo, fichier vide, champ absent, requête non multipart, upload depuis le navigateur) — détail dans la PR.
+- **Documentation :** section API du README, [diagramme de séquence](../modelisation/sequence-us-b1-upload.md).
+- **Décision technique :** le point ouvert « stockage des fichiers » de l'ADR-001 est tranché pour le Sprint 1 : disque local, fichiers nommés par un identifiant aléatoire (le nom d'origine est conservé en base).
+- **Dépendance :** en attendant US-A2, les fichiers sont rattachés à un utilisateur de démo (`src/lib/current-user.ts`) ; l'intégration de l'authentification se fera en remplaçant `getCurrentUser()`.
+- **Hors périmètre :** taille max et types autorisés (US-E2), tests automatisés (US-E1).
 
 ## Actions et responsables
 
 | Action | Responsable | Échéance |
 |---|---|---|
-| | | |
+| Relire et fusionner la PR #1 (US-B1) | Ayoub | _(à compléter)_ |
+| Brancher `getCurrentUser()` sur la session une fois US-A2 livrée | Responsable US-A2 + Yanis | _(à compléter)_ |
+| Se coordonner sur la migration Prisma initiale (une seule migration `init`) | Équipe | Avant fusion de la PR #1 |
+| Implémenter US-B3 (téléchargement) | Ayoub | Fin du Sprint 1 |
