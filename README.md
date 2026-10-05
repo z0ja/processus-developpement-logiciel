@@ -31,12 +31,28 @@ npm run dev                 # http://localhost:3000
 | `npm run db:migrate` | Crée/applique une migration Prisma (`-- --name <nom>`) |
 | `npm run db:studio` | Interface d'exploration de la base |
 
+## API
+
+| Méthode | Route | US | Description |
+|---|---|---|---|
+| `POST` | `/api/files` | US-B1 | Upload d'un fichier (`multipart/form-data`, champ `file`). Réponses : `201` + métadonnées du fichier, `400` si fichier absent ou vide, `401` si non authentifié. |
+
+```bash
+curl -F "file=@mon-fichier.pdf" http://localhost:3000/api/files
+```
+
+Les fichiers sont stockés dans `UPLOAD_DIR` sous un nom aléatoire ; le nom d'origine, le type MIME et la taille sont enregistrés en base (table `File`).
+
+> En attendant l'authentification (US-A2), les fichiers sont rattachés à un utilisateur de démo (`demo@partage.local`) — voir `src/lib/current-user.ts`.
+
 ## Structure
 
 ```
 prisma/schema.prisma      # modèle de données (User, File)
 src/app/                  # pages et routes API (Next.js App Router)
 src/lib/prisma.ts         # client Prisma partagé
+src/lib/storage.ts        # stockage des fichiers sur disque
+src/lib/current-user.ts   # utilisateur courant (provisoire, cf. US-A2)
 docs/                     # ADR, comptes-rendus, backlog
 ```
 
