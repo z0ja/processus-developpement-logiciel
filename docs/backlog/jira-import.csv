@@ -1,0 +1,24 @@
+Issue id,Issue Type,Summary,Description,Epic Name,Epic Link,Priority,Labels,Sprint
+1,Epic,Epic A - Comptes utilisateurs,"Gestion des comptes : inscription et connexion.",Epic A - Comptes utilisateurs,,,,
+2,Epic,Epic B - Gestion des fichiers,"Upload, listing, téléchargement et suppression des fichiers de l'utilisateur.",Epic B - Gestion des fichiers,,,,
+3,Epic,Epic C - Partage,"Partage de fichiers par lien ou vers un autre utilisateur.",Epic C - Partage,,,,
+4,Epic,Epic D - Contrôle d'accès et sécurité,"Restrictions sur les liens de partage (expiration, mot de passe, quotas de téléchargement).",Epic D - Contrôle d'accès et sécurité,,,,
+5,Epic,Epic E - Non-fonctionnel / qualité,"Tests, validation des fichiers et quotas de stockage.",Epic E - Non-fonctionnel / qualité,,,,
+6,Epic,Epic F - Confort (stretch goals),"Fonctionnalités de confort, à faire si le temps le permet.",Epic F - Confort (stretch goals),,,,
+7,Story,US-A1 - Créer un compte,"En tant qu'utilisateur, je peux créer un compte pour accéder au service.",,1,High,mvp,Sprint 1
+8,Story,US-A2 - Se connecter / se déconnecter,"En tant qu'utilisateur, je peux me connecter et me déconnecter.",,1,High,mvp,Sprint 1
+9,Story,US-B1 - Uploader un fichier,"En tant qu'utilisateur, je peux uploader un fichier.",,2,High,mvp,Sprint 1
+10,Story,US-B3 - Télécharger un fichier,"En tant qu'utilisateur, je peux télécharger un de mes fichiers.",,2,High,mvp,Sprint 1
+11,Story,US-B2 - Voir la liste de mes fichiers,"En tant qu'utilisateur, je peux voir la liste de mes fichiers.",,2,High,mvp,Sprint 2
+12,Story,US-B4 - Supprimer un fichier,"En tant qu'utilisateur, je peux supprimer un de mes fichiers.",,2,High,mvp,Sprint 2
+13,Story,US-C1 - Générer un lien de partage,"En tant qu'utilisateur, je peux générer un lien de partage pour un fichier.",,3,High,mvp,Sprint 2
+14,Story,US-C3 - Accéder à un fichier partagé,"En tant que destinataire, je peux accéder à un fichier partagé via le lien ou via mon compte.",,3,High,mvp,Sprint 2
+15,Story,US-C2 - Partager avec un utilisateur du service,"En tant qu'utilisateur, je peux partager un fichier directement avec un autre utilisateur du service.",,3,Medium,mvp,Sprint 3
+16,Story,US-D1 - Expiration d'un lien de partage,"En tant qu'utilisateur, je peux définir une date d'expiration sur un lien de partage.",,4,Medium,mvp,Sprint 3
+17,Story,US-D2 - Protéger un lien par mot de passe,"En tant qu'utilisateur, je peux protéger un lien de partage par mot de passe.",,4,Medium,mvp,Sprint 3
+18,Story,US-D3 - Limiter le nombre de téléchargements,"En tant qu'utilisateur, je peux limiter le nombre de téléchargements autorisés sur un lien.",,4,Medium,mvp,Sprint 4
+19,Story,US-E1 - Tests automatisés,"Mise en place de tests automatisés sur les fonctionnalités critiques (upload, download, contrôle d'accès).",,5,Medium,mvp,Sprint 4
+20,Story,US-E2 - Validation des fichiers uploadés,"Validation des fichiers uploadés (taille max, types autorisés) pour éviter les abus.",,5,Medium,mvp,Sprint 4
+21,Story,US-E3 - Quota de stockage,"Quota de stockage par utilisateur.",,5,Medium,mvp,Sprint 4
+22,Story,US-F1 - Organisation en dossiers,"En tant qu'utilisateur, je peux organiser mes fichiers en dossiers.",,6,Low,stretch,Backlog
+23,Story,US-F2 - Recherche de fichiers,"En tant qu'utilisateur, je peux rechercher un fichier par nom.",,6,Low,stretch,Backlog
