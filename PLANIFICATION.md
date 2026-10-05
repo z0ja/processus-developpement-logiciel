@@ -35,6 +35,8 @@ Chaque séance = un point de rencontre avec le PO. Comme il y a 4 sprints pour 5
 - **Sprint Planning** (avec ou juste après le PO, en séance) : sélection des éléments du backlog, définition du sprint goal, estimation.
 - **Daily / point d'avancement** : vu le rythme hebdomadaire, un point async court (chat) 1-2 fois entre les séances suffit à la place d'un vrai daily.
 
+Pour le moment on va prévoir 4h de code par personne pour les 4 premières tâches (US-A1, US-A2, US-B1, US-B2) donc on va déborder du temps prévu par séance de TP. Il va donc falloir prévoir des heures suplémentaires pour les développeurs.
+
 ---
 
 ## 3. Rôles de l'équipe
@@ -186,3 +188,4 @@ Support complet (déroulé minuté, questions au PO, CR à remplir en direct) : 
 3. Préparer une version courte de ce backlog à présenter au PO en ouverture de la séance 1 pour cadrer ses attentes réelles.
 4. Trancher le choix technique (ADR) dès que le périmètre du Sprint 1 est confirmé par le PO.
 5. Découper US-A1/A2/B1/B3 en tâches techniques pour le Sprint 1.
+
