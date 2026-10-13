@@ -10,7 +10,7 @@ type Status =
   | { kind: "success"; file: UploadedFile }
   | { kind: "error"; message: string };
 
-export function UploadForm() {
+export function UploadForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -32,6 +32,7 @@ export function UploadForm() {
       }
       setStatus({ kind: "success", file: body });
       form.reset();
+      onSuccess?.();
     } catch {
       setStatus({ kind: "error", message: "Impossible de joindre le serveur." });
     }

@@ -47,5 +47,21 @@ model File {
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId String
 
+  shareLinks ShareLink[]
+
   @@index([ownerId])
+}
+
+// Epic C — Partage de fichiers
+model ShareLink {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+  password  String?
+
+  file   File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  fileId String
+
+  @@index([fileId])
 }
