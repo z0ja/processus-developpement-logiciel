@@ -29,6 +29,7 @@ npm run dev                 # http://localhost:3000
 | `npm run build` / `npm start` | Build et lancement en production |
 | `npm run lint` | ESLint |
 | `npm run db:migrate` | Crée/applique une migration Prisma (`-- --name <nom>`) |
+| `npm run db:deploy` | Applique les migrations existantes sans en créer (serveur de déploiement) |
 | `npm run db:studio` | Interface d'exploration de la base |
 
 ## API
@@ -61,6 +62,27 @@ curl -b cookies.txt -X POST http://localhost:3000/api/auth/logout
 Les fichiers sont stockés dans `UPLOAD_DIR` sous un nom aléatoire ; le nom d'origine, le type MIME et la taille sont enregistrés en base (table `File`).
 
 Les sessions sont stockées en base (table `Session`) : le cookie contient un jeton aléatoire, la base n'en conserve que l'empreinte SHA-256. Les routes protégées récupèrent l'utilisateur connecté via `getCurrentUser()` (`src/lib/current-user.ts`) et répondent `401` s'il n'y en a pas.
+
+## Déploiement sur le serveur pedago
+
+L'instance déployée sur `pedago.univ-avignon.fr` est l'environnement commun de l'équipe et du PO : une seule base et un seul dossier de fichiers. Chacun garde sa base locale pour développer.
+
+- **Base :** PostgreSQL du serveur, base commune `etd`. Les tables sont créées dans le **schéma personnel** du compte qui déploie (`uapv…`), pas dans `public` (partagé entre tous les étudiants). La connexion passe par le socket local, sans mot de passe : elle ne fonctionne que depuis le serveur.
+- **Fichiers :** dossier `UPLOAD_DIR` sur le serveur.
+
+Sur le serveur (Node.js ≥ 20), dans le dossier du projet :
+
+```bash
+cp .env.example .env    # puis activer la ligne DATABASE_URL « serveur pedago » en remplaçant <login>
+npm ci
+npm run db:deploy       # applique les migrations dans le schéma personnel
+npm run build
+npm start -- -p <port>
+```
+
+Après chaque mise à jour de `main` : `git pull && npm ci && npm run db:deploy && npm run build`, puis relancer `npm start`.
+
+> `npm run db:migrate` (création de migrations) reste réservé au développement local : il a besoin de créer une base temporaire, ce que le serveur n'autorise pas.
 
 ## Structure
 
