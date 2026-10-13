@@ -83,10 +83,10 @@ export function RegisterForm() {
         </div>
         <div className="flex flex-col gap-2">
           <Link
-            href="/"
+            href="/login"
             className="flex h-11 items-center justify-center rounded-full bg-foreground px-5 font-medium text-background transition hover:opacity-90"
           >
-            Retourner à l&apos;accueil
+            Se connecter
           </Link>
           <button
             type="button"

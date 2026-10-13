@@ -36,6 +36,8 @@ npm run dev                 # http://localhost:3000
 | Méthode | Route | US | Description |
 |---|---|---|---|
 | `POST` | `/api/auth/register` | US-A1 | Création de compte (`application/json`, champs `email`, `password`, optionnel `confirmPassword`). Réponses : `201` + utilisateur créé, `400` si champs invalides, `409` si email déjà existant. |
+| `POST` | `/api/auth/login` | US-A2 | Connexion (`application/json`, champs `email`, `password`). Réponses : `200` + utilisateur et cookie de session `session` (`HttpOnly`, 7 jours), `400` si champs manquants, `401` si identifiants incorrects. |
+| `POST` | `/api/auth/logout` | US-A2 | Déconnexion : supprime la session en base et le cookie. Réponse : `200` (même sans session ouverte). |
 | `POST` | `/api/files` | US-B1 | Upload d'un fichier (`multipart/form-data`, champ `file`). Réponses : `201` + métadonnées du fichier, `400` si fichier absent ou vide, `401` si non authentifié. |
 
 ```bash
@@ -44,22 +46,31 @@ curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"alice@exemple.fr","password":"MotDePasseSecret123"}'
 
-# Upload d'un fichier (US-B1)
-curl -F "file=@mon-fichier.pdf" http://localhost:3000/api/files
+# Connexion (US-A2) — le cookie de session est enregistré dans cookies.txt
+curl -c cookies.txt -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alice@exemple.fr","password":"MotDePasseSecret123"}'
+
+# Upload d'un fichier (US-B1) — nécessite d'être connecté
+curl -b cookies.txt -F "file=@mon-fichier.pdf" http://localhost:3000/api/files
+
+# Déconnexion (US-A2)
+curl -b cookies.txt -X POST http://localhost:3000/api/auth/logout
 ```
 
 Les fichiers sont stockés dans `UPLOAD_DIR` sous un nom aléatoire ; le nom d'origine, le type MIME et la taille sont enregistrés en base (table `File`).
 
-> En attendant l'authentification (US-A2), les fichiers sont rattachés à un utilisateur de démo (`demo@partage.local`) — voir `src/lib/current-user.ts`.
+Les sessions sont stockées en base (table `Session`) : le cookie contient un jeton aléatoire, la base n'en conserve que l'empreinte SHA-256. Les routes protégées récupèrent l'utilisateur connecté via `getCurrentUser()` (`src/lib/current-user.ts`) et répondent `401` s'il n'y en a pas.
 
 ## Structure
 
 ```
-prisma/schema.prisma      # modèle de données (User, File)
+prisma/schema.prisma      # modèle de données (User, Session, File)
 src/app/                  # pages et routes API (Next.js App Router)
 src/lib/prisma.ts         # client Prisma partagé
 src/lib/storage.ts        # stockage des fichiers sur disque
-src/lib/current-user.ts   # utilisateur courant (provisoire, cf. US-A2)
+src/lib/session.ts        # sessions de connexion (cookie + table Session)
+src/lib/current-user.ts   # utilisateur connecté (lu depuis la session)
 docs/                     # ADR, comptes-rendus, backlog
 ```
 

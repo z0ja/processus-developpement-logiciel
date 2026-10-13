@@ -17,7 +17,22 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
 
-  files File[]
+  files    File[]
+  sessions Session[]
+}
+
+// US-A2 — Sessions de connexion. Seule l'empreinte SHA-256 du jeton est stockée :
+// le jeton en clair n'existe que dans le cookie de l'utilisateur.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([userId])
 }
 
 // Epic B — Gestion des fichiers

@@ -33,8 +33,8 @@ export default function RegisterPage() {
         <footer className="border-t border-zinc-100 pt-4 text-center text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
           <p>
             Vous avez déjà un compte ?{" "}
-            <Link href="/" className="font-medium underline hover:text-zinc-800 dark:hover:text-zinc-200">
-              Retourner à l&apos;accueil
+            <Link href="/login" className="font-medium underline hover:text-zinc-800 dark:hover:text-zinc-200">
+              Se connecter
             </Link>
           </p>
         </footer>
