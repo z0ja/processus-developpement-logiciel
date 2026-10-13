@@ -35,9 +35,16 @@ npm run dev                 # http://localhost:3000
 
 | Méthode | Route | US | Description |
 |---|---|---|---|
+| `POST` | `/api/auth/register` | US-A1 | Création de compte (`application/json`, champs `email`, `password`, optionnel `confirmPassword`). Réponses : `201` + utilisateur créé, `400` si champs invalides, `409` si email déjà existant. |
 | `POST` | `/api/files` | US-B1 | Upload d'un fichier (`multipart/form-data`, champ `file`). Réponses : `201` + métadonnées du fichier, `400` si fichier absent ou vide, `401` si non authentifié. |
 
 ```bash
+# Inscription (US-A1)
+curl -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alice@exemple.fr","password":"MotDePasseSecret123"}'
+
+# Upload d'un fichier (US-B1)
 curl -F "file=@mon-fichier.pdf" http://localhost:3000/api/files
 ```
 
