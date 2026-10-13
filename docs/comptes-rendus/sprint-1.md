@@ -51,10 +51,10 @@ _(à compléter)_
 
 | US | Estimation (heure) | Responsable(s) | Statut |
 |---|---|---|---|
-| US-A1 — Créer un compte | 1h30 | Evan | À faire |
-| US-A2 — Se connecter / se déconnecter | 1h30 | Wanis | À faire |
-| US-B1 — Uploader un fichier | 1h30 | Yanis | En revue ([PR #1](https://github.com/z0ja/processus-developpement-logiciel/pull/1)) |
-| US-B3 — Télécharger un fichier | 1h30 | Ayoub | À faire |
+| US-A1 — Créer un compte | 1h30 | Wanis | Terminé (fusionné dans `main` le 13/10/2026) |
+| US-A2 — Se connecter / se déconnecter | 1h30 | Yanis | En revue (fusionné dans `main` le 13/10/2026, relecture à faire) |
+| US-B1 — Uploader un fichier | 1h30 | Yanis | Terminé ([PR #1](https://github.com/z0ja/processus-developpement-logiciel/pull/1) fusionnée le 05/10/2026) |
+| US-B3 — Télécharger un fichier | 1h30 | Ayoub | Partiel : démo qui télécharge un fichier fixe (`partage/test.txt`), pas encore reliée aux fichiers uploadés |
 
 ## Suivi du sprint
 
@@ -64,15 +64,25 @@ _(à compléter)_
 - **Tests :** manuels (fichier texte, binaire de 3 Mo, fichier vide, champ absent, requête non multipart, upload depuis le navigateur) — détail dans la PR.
 - **Documentation :** section API du README, [diagramme de séquence](../modelisation/sequence-us-b1-upload.md).
 - **Décision technique :** le point ouvert « stockage des fichiers » de l'ADR-001 est tranché pour le Sprint 1 : disque local, fichiers nommés par un identifiant aléatoire (le nom d'origine est conservé en base).
-- **Dépendance :** en attendant US-A2, les fichiers sont rattachés à un utilisateur de démo (`src/lib/current-user.ts`) ; l'intégration de l'authentification se fera en remplaçant `getCurrentUser()`.
+- **Dépendance :** levée le 13/10/2026 — l'utilisateur de démo provisoire est remplacé par la session (US-A2) ; l'upload exige désormais d'être connecté.
 - **Hors périmètre :** taille max et types autorisés (US-E2), tests automatisés (US-E1).
+
+### US-A2 — Se connecter / se déconnecter (2026-10-13)
+
+- **Réalisé :** routes `POST /api/auth/login` et `POST /api/auth/logout`, page `/login`, bouton « Se déconnecter », accueil adapté selon l'état de connexion, migration Prisma `add_session` (table `Session`). `getCurrentUser()` lit maintenant la session : les routes protégées répondent `401` sans connexion.
+- **Tests :** manuels (identifiants incorrects, champs manquants, connexion, upload connecté / non connecté, cookie rejoué après déconnexion, parcours complet dans le navigateur) + non-régression sur US-A1, US-B1 et la démo US-B3 ; typecheck, lint et build de production passent.
+- **Documentation :** section API du README, [diagramme de séquence](../modelisation/sequence-us-a2-login.md).
+- **Décision technique :** le point ouvert « authentification » de l'ADR-001 est tranché : sessions stockées en base + cookie `HttpOnly` (7 jours), sans dépendance externe (ni NextAuth ni JWT). Seule l'empreinte SHA-256 du jeton est conservée en base.
+- **Changement d'attribution :** US-A1 réalisée par Wanis et US-A2 par Yanis (prévu initialement : Evan et Wanis).
+- **Limites connues :** pas de limitation du nombre de tentatives de connexion ; les sessions expirées sont refusées mais pas purgées ; `/api/download` reste accessible sans connexion.
 
 ## Actions et responsables
 
-| Action | Responsable | Échéance |
-|---|---|---|
-| Relire et fusionner la PR #1 (US-B1) | Ayoub | _(à compléter)_ |
-| Brancher `getCurrentUser()` sur la session une fois US-A2 livrée | Wanis + Yanis | _(à compléter)_ |
-| Se coordonner sur la migration Prisma initiale (une seule migration `init`) | Équipe | Avant fusion de la PR #1 |
-| Implémenter US-B3 (téléchargement) | Ayoub | Fin du Sprint 1 |
-| Passer le relais US-B1 → US-B3 : réutiliser `resolveStoragePath()` (`src/lib/storage.ts`) pour lire les fichiers stockés | Yanis → Ayoub | Avant le début d'US-B3 |
+| Action | Responsable | Échéance | Statut |
+|---|---|---|---|
+| Relire et fusionner la PR #1 (US-B1) | Ayoub | — | Fait (fusionnée le 05/10/2026, sans relecture préalable) |
+| Brancher `getCurrentUser()` sur la session une fois US-A2 livrée | Yanis | — | Fait (US-A2) |
+| Se coordonner sur la migration Prisma initiale (une seule migration `init`) | Équipe | — | Fait (une seule migration `init` dans `main`) |
+| Lancer `npm run db:migrate` après récupération de `main` (nouvelle table `Session`) | Équipe | Dès récupération de `main` | À faire |
+| Relire US-A2 (déjà fusionnée dans `main`) | _(relecteur à désigner)_ | _(à compléter)_ | À faire |
+| Terminer US-B3 : téléchargement d'un fichier uploadé, par `id`, réservé à son propriétaire (réutiliser `resolveStoragePath()` de `src/lib/storage.ts`) | Ayoub | Fin du Sprint 1 | À faire |
