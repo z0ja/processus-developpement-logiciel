@@ -40,11 +40,15 @@ npm run dev                 # http://localhost:3000
 | `POST` | `/api/auth/login` | US-A2 | Connexion (`application/json`, champs `email`, `password`). Réponses : `200` + utilisateur et cookie de session `session` (`HttpOnly`, 7 jours), `400` si champs manquants, `401` si identifiants incorrects. |
 | `POST` | `/api/auth/logout` | US-A2 | Déconnexion : supprime la session en base et le cookie. Réponse : `200` (même sans session ouverte). |
 | `POST` | `/api/files` | US-B1 | Upload d'un fichier (`multipart/form-data`, champ `file`). Réponses : `201` + métadonnées du fichier, `400` si fichier absent ou vide, `401` si non authentifié. |
-| `GET` | `/api/files` | US-B2 | Liste des fichiers de l'utilisateur connecté et état de leurs liens de partage (`hasPassword`). |
-| `GET` | `/api/files/[id]/download` | US-B3 | Téléchargement direct d'un fichier par son propriétaire (`401` si non connecté, `404` si introuvable). |
+| `GET` | `/api/files` | US-B2 | Liste des fichiers de l'utilisateur connecté, état de leurs liens de partage (`hasPassword`) et nombre de destinataires (`_count.shares`). |
+| `GET` | `/api/files/[id]/download` | US-B3 / US-C2 | Téléchargement d'un fichier par son propriétaire **ou par un utilisateur avec qui il est partagé** (`401` si non connecté, `404` sinon). |
 | `POST` | `/api/files/[id]/share` | US-C1 / US-D2 | Génère ou récupère le lien de partage d'un fichier (corps JSON optionnel `{ "password" }`). |
 | `PATCH` | `/api/files/[id]/share` | US-D2 | Définit, modifie ou retire (`{ "password": null }`) le mot de passe d'un lien de partage existant. |
 | `DELETE` | `/api/files/[id]/share` | US-C1 | Révoque le lien de partage d'un fichier. |
+| `GET` | `/api/files/[id]/shares` | US-C2 | Liste des utilisateurs avec qui le fichier est partagé (propriétaire uniquement) : `200` + `[{ id, createdAt, recipient: { id, email } }]`, `404` si fichier introuvable ou non possédé. |
+| `POST` | `/api/files/[id]/shares` | US-C2 | Partage le fichier avec un utilisateur du service (`{ "email" }`, insensible à la casse) : `201`, `400` si email invalide ou égal au sien, `404` si fichier non possédé ou aucun utilisateur avec cet email, `409` si déjà partagé avec lui. |
+| `DELETE` | `/api/files/[id]/shares/[recipientId]` | US-C2 | Retire l'accès d'un destinataire (propriétaire uniquement, `404` si partage introuvable). |
+| `GET` | `/api/shared` | US-C2 / US-C3 | Fichiers partagés avec l'utilisateur connecté : `[{ id, name, mimeType, size, createdAt, ownerEmail, sharedAt }]`. |
 | `GET` | `/api/share/[token]` | US-C3 / US-D2 | Métadonnées publiques d'un lien partagé (`401` si protégé par mot de passe et non déverrouillé). |
 | `POST` | `/api/share/[token]` | US-D2 | Vérifie le mot de passe (`{ "password" }`) et pose un cookie `HttpOnly` de déverrouillage (`401` si incorrect). |
 | `GET` | `/api/share/[token]/download` | US-C3 / US-D2 | Téléchargement du fichier partagé (`401` si protégé par mot de passe et non déverrouillé, `410` si expiré). |
@@ -63,11 +67,21 @@ curl -c cookies.txt -X POST http://localhost:3000/api/auth/login \
 # Upload d'un fichier (US-B1) — nécessite d'être connecté
 curl -b cookies.txt -F "file=@mon-fichier.pdf" http://localhost:3000/api/files
 
+# Partage avec un autre utilisateur du service (US-C2)
+curl -b cookies.txt -X POST http://localhost:3000/api/files/<id>/shares \
+  -H "Content-Type: application/json" \
+  -d '{"email":"bob@exemple.fr"}'
+
+# Fichiers partagés avec moi (US-C2)
+curl -b cookies.txt http://localhost:3000/api/shared
+
 # Déconnexion (US-A2)
 curl -b cookies.txt -X POST http://localhost:3000/api/auth/logout
 ```
 
 Les fichiers sont stockés dans `UPLOAD_DIR` sous un nom aléatoire ; le nom d'origine, le type MIME et la taille sont enregistrés en base (table `File`).
+
+Le partage entre utilisateurs (US-C2) est stocké dans la table `FileShare` (un couple fichier/destinataire unique). Il ne crée pas de lien public : le destinataire accède au fichier depuis son compte, dans la section « Fichiers partagés avec moi » de l'accueil. Le propriétaire peut retirer l'accès à tout moment depuis la fenêtre « Partager ».
 
 Les sessions sont stockées en base (table `Session`) : le cookie contient un jeton aléatoire, la base n'en conserve que l'empreinte SHA-256. Les routes protégées récupèrent l'utilisateur connecté via `getCurrentUser()` (`src/lib/current-user.ts`) et répondent `401` s'il n'y en a pas.
 
@@ -95,7 +109,7 @@ Après chaque mise à jour de `main` : `git pull && npm ci && npm run db:deploy 
 ## Structure
 
 ```
-prisma/schema.prisma      # modèle de données (User, Session, File)
+prisma/schema.prisma      # modèle de données (User, Session, File, ShareLink, FileShare)
 src/app/                  # pages et routes API (Next.js App Router)
 src/lib/prisma.ts         # client Prisma partagé
 src/lib/storage.ts        # stockage des fichiers sur disque

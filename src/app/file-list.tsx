@@ -16,6 +16,7 @@ export type FileItem = {
     expiresAt?: string | null;
     hasPassword?: boolean;
   }>;
+  _count?: { shares: number };
 };
 
 type FileListProps = {
@@ -27,14 +28,8 @@ export function FileList({ refreshTrigger }: FileListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // État de la modal de partage
-  const [activeShare, setActiveShare] = useState<{
-    fileId: string;
-    fileName: string;
-    shareUrl: string;
-    hasPassword: boolean;
-    expiresAt: string | null;
-  } | null>(null);
+  // Fichier dont la modale de partage est ouverte
+  const [activeShare, setActiveShare] = useState<FileItem | null>(null);
 
   const reloadFiles = useCallback(async () => {
     try {
@@ -72,27 +67,6 @@ export function FileList({ refreshTrigger }: FileListProps) {
     };
   }, [refreshTrigger]);
 
-  async function handleShare(file: FileItem) {
-    try {
-      const res = await fetch(`/api/files/${file.id}/share`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error ?? "Erreur lors de la génération du lien.");
-        return;
-      }
-      setActiveShare({
-        fileId: file.id,
-        fileName: file.name,
-        shareUrl: data.shareUrl,
-        hasPassword: Boolean(data.hasPassword),
-        expiresAt: data.expiresAt ?? file.shareLinks?.[0]?.expiresAt ?? null,
-      });
-      reloadFiles();
-    } catch {
-      alert("Erreur réseau lors de la génération du lien.");
-    }
-  }
-
   if (loading) {
     return <p className="text-xs text-zinc-500 py-4 text-center">Chargement des fichiers…</p>;
   }
@@ -113,12 +87,12 @@ export function FileList({ refreshTrigger }: FileListProps) {
     <>
       <div className="flex flex-col gap-2">
         {files.map((file) => {
-          const latestShare = file.shareLinks?.[0];
-          const isShared = Boolean(latestShare);
-          const isPasswordProtected = Boolean(latestShare?.hasPassword);
-          const isExpired = Boolean(
-            latestShare?.expiresAt && new Date(latestShare.expiresAt) < new Date()
-          );
+          const latestLink = file.shareLinks?.[0];
+          const hasLink = Boolean(latestLink);
+          const isPasswordProtected = Boolean(latestLink?.hasPassword);
+          const linkExpiresAt = latestLink?.expiresAt ? new Date(latestLink.expiresAt) : null;
+          const isLinkExpired = Boolean(linkExpiresAt && linkExpiresAt < new Date());
+          const recipientCount = file._count?.shares ?? 0;
           return (
             <div
               key={file.id}
@@ -130,20 +104,21 @@ export function FileList({ refreshTrigger }: FileListProps) {
                 </span>
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">
                   {formatSize(file.size)} • {new Date(file.createdAt).toLocaleDateString("fr-FR")}
-                  {isShared && (
-                    isExpired ? (
-                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
-                        ⚠️ Expiré
-                      </span>
-                    ) : latestShare?.expiresAt ? (
-                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                        {isPasswordProtected ? "🔒 " : ""}Partagé (expire le {new Date(latestShare.expiresAt).toLocaleDateString("fr-FR")})
+                  {hasLink &&
+                    (isLinkExpired ? (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
+                        ⚠️ Lien expiré
                       </span>
                     ) : (
-                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                        {isPasswordProtected ? "🔒 Partagé" : "Partagé"}
+                      <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                        {isPasswordProtected ? "🔒 " : ""}Lien
+                        {linkExpiresAt && ` (expire le ${linkExpiresAt.toLocaleDateString("fr-FR")})`}
                       </span>
-                    )
+                    ))}
+                  {recipientCount > 0 && (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+                      {recipientCount} utilisateur{recipientCount > 1 ? "s" : ""}
+                    </span>
                   )}
                 </span>
               </div>
@@ -159,9 +134,9 @@ export function FileList({ refreshTrigger }: FileListProps) {
                 </a>
                 <button
                   type="button"
-                  onClick={() => handleShare(file)}
+                  onClick={() => setActiveShare(file)}
                   className="rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-blue-700"
-                  title="Générer ou gérer le lien de partage"
+                  title="Partager avec un utilisateur ou par lien"
                 >
                   Partager
                 </button>
@@ -173,14 +148,17 @@ export function FileList({ refreshTrigger }: FileListProps) {
 
       {activeShare && (
         <ShareModal
-          fileId={activeShare.fileId}
-          fileName={activeShare.fileName}
-          shareUrl={activeShare.shareUrl}
-          initialHasPassword={activeShare.hasPassword}
-          initialExpiresAt={activeShare.expiresAt}
+          fileId={activeShare.id}
+          fileName={activeShare.name}
+          initialShareUrl={
+            activeShare.shareLinks?.[0]
+              ? `${window.location.origin}/share/${activeShare.shareLinks[0].token}`
+              : null
+          }
+          initialHasPassword={Boolean(activeShare.shareLinks?.[0]?.hasPassword)}
+          initialExpiresAt={activeShare.shareLinks?.[0]?.expiresAt ?? null}
           onClose={() => setActiveShare(null)}
-          onRevoked={reloadFiles}
-          onUpdated={reloadFiles}
+          onChanged={reloadFiles}
         />
       )}
     </>

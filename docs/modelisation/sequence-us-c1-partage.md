@@ -18,7 +18,7 @@ sequenceDiagram
     participant CU as getCurrentUser()
     participant DB as PostgreSQL<br/>(Prisma)
 
-    U->>UI: Clic sur « Partager » à côté du fichier
+    U->>UI: Clic sur « Partager » puis « Générer un lien » (fenêtre de partage)
     UI->>R: POST /api/files/:id/share (avec cookie session)
     R->>CU: getCurrentUser()
     CU-->>R: user ou null
