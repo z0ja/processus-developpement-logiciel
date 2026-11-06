@@ -62,7 +62,7 @@ export async function GET() {
       size: true,
       createdAt: true,
       shareLinks: {
-        select: { id: true, token: true, createdAt: true, password: true },
+        select: { id: true, token: true, createdAt: true, password: true, expiresAt: true },
         take: 1,
         orderBy: { createdAt: "desc" },
       },
@@ -71,10 +71,11 @@ export async function GET() {
 
   const sanitized = files.map((f) => ({
     ...f,
-    shareLinks: f.shareLinks.map(({ id, token, createdAt, password }) => ({
+    shareLinks: f.shareLinks.map(({ id, token, createdAt, password, expiresAt }) => ({
       id,
       token,
       createdAt,
+      expiresAt,
       hasPassword: Boolean(password),
     })),
   }));

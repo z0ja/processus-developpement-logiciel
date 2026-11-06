@@ -7,6 +7,7 @@ type ShareModalProps = {
   shareUrl: string;
   fileId: string;
   initialHasPassword?: boolean;
+  initialExpiresAt?: string | null;
   onClose: () => void;
   onRevoked: () => void;
   onUpdated?: () => void;
@@ -17,6 +18,7 @@ export function ShareModal({
   shareUrl,
   fileId,
   initialHasPassword = false,
+  initialExpiresAt = null,
   onClose,
   onRevoked,
   onUpdated,
@@ -26,8 +28,17 @@ export function ShareModal({
   const [hasPassword, setHasPassword] = useState(initialHasPassword);
   const [passwordInput, setPasswordInput] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const [expiresAt, setExpiresAt] = useState<string | null>(initialExpiresAt);
+  const [customDateTime, setCustomDateTime] = useState("");
+  const [savingExpiration, setSavingExpiration] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [minDateTime] = useState(() =>
+    new Date(Date.now() + 60000).toISOString().slice(0, 16)
+  );
+
+  const isExpired = Boolean(expiresAt && new Date(expiresAt) < new Date());
 
   async function handleCopy() {
     try {
@@ -103,6 +114,53 @@ export function ShareModal({
     }
   }
 
+  async function handleUpdateExpiration(targetDate: Date | null) {
+    setSavingExpiration(true);
+    setError(null);
+    setFeedback(null);
+
+    try {
+      const res = await fetch(`/api/files/${fileId}/share`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expiresAt: targetDate ? targetDate.toISOString() : null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Impossible de modifier la date d'expiration.");
+        return;
+      }
+      setExpiresAt(data.expiresAt ?? null);
+      setCustomDateTime("");
+      setFeedback(
+        data.expiresAt
+          ? `Date d'expiration définie au ${new Date(data.expiresAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}.`
+          : "Date d'expiration retirée (lien permanent)."
+      );
+      onUpdated?.();
+    } catch {
+      setError("Erreur réseau lors de la modification de l'expiration.");
+    } finally {
+      setSavingExpiration(false);
+    }
+  }
+
+  function handleCustomExpirationSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!customDateTime) {
+      setError("Veuillez sélectionner une date et heure.");
+      return;
+    }
+    const chosen = new Date(customDateTime);
+    if (Number.isNaN(chosen.getTime()) || chosen.getTime() <= Date.now()) {
+      setError("Veuillez choisir une date future.");
+      return;
+    }
+    handleUpdateExpiration(chosen);
+  }
+
   async function handleRevoke() {
     if (!confirm("Voulez-vous vraiment désactiver le lien de partage pour ce fichier ?")) {
       return;
@@ -132,7 +190,7 @@ export function ShareModal({
       role="dialog"
       aria-modal="true"
     >
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900 dark:border dark:border-zinc-800">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900 dark:border dark:border-zinc-800">
         <div className="flex items-start justify-between gap-2 mb-4">
           <div>
             <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -153,9 +211,11 @@ export function ShareModal({
         </div>
 
         <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
-          {hasPassword
-            ? "Ce lien est protégé par un mot de passe. Le destinataire devra le saisir avant de pouvoir télécharger le fichier."
-            : "Toute personne disposant de ce lien peut consulter et télécharger ce fichier sans compte."}
+          {isExpired
+            ? "Ce lien a expiré. Définissez une nouvelle date d'expiration pour le réactiver."
+            : hasPassword
+              ? "Ce lien est protégé par un mot de passe. Le destinataire devra le saisir avant de pouvoir télécharger le fichier."
+              : "Toute personne disposant de ce lien peut consulter et télécharger ce fichier sans compte."}
         </p>
 
         <div className="flex items-center gap-2 mb-5">
@@ -175,6 +235,7 @@ export function ShareModal({
           </button>
         </div>
 
+        {/* Protection par mot de passe */}
         <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 mb-4 dark:border-zinc-800 dark:bg-zinc-800/40">
           <div className="flex items-center justify-between gap-2 mb-2.5">
             <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
@@ -228,6 +289,91 @@ export function ShareModal({
               </button>
             </div>
           )}
+        </div>
+
+        {/* Date d'expiration */}
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 mb-4 dark:border-zinc-800 dark:bg-zinc-800/40">
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
+              Date d&apos;expiration
+            </span>
+            {isExpired ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
+                ⚠️ Expiré
+              </span>
+            ) : expiresAt ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                ⏱️ {new Date(expiresAt).toLocaleDateString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-zinc-200/80 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                Désactivée (illimité)
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-1.5 mb-2.5">
+            <button
+              type="button"
+              disabled={savingExpiration}
+              onClick={() => handleUpdateExpiration(new Date(Date.now() + 60 * 60 * 1000))}
+              className="rounded-md bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              +1 h
+            </button>
+            <button
+              type="button"
+              disabled={savingExpiration}
+              onClick={() => handleUpdateExpiration(new Date(Date.now() + 24 * 60 * 60 * 1000))}
+              className="rounded-md bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              +24 h
+            </button>
+            <button
+              type="button"
+              disabled={savingExpiration}
+              onClick={() => handleUpdateExpiration(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))}
+              className="rounded-md bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              +7 j
+            </button>
+            <button
+              type="button"
+              disabled={savingExpiration}
+              onClick={() => handleUpdateExpiration(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))}
+              className="rounded-md bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              +30 j
+            </button>
+            {expiresAt && (
+              <button
+                type="button"
+                disabled={savingExpiration}
+                onClick={() => handleUpdateExpiration(null)}
+                className="rounded-md bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-500 hover:text-red-600 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-400 dark:hover:text-red-400"
+              >
+                Sans limite
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={handleCustomExpirationSubmit} className="flex items-center gap-2">
+            <input
+              type="datetime-local"
+              value={customDateTime}
+              min={minDateTime}
+              onChange={(e) => setCustomDateTime(e.target.value)}
+              disabled={savingExpiration}
+              className="flex-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            />
+            <button
+              type="submit"
+              disabled={savingExpiration || !customDateTime}
+              className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              {savingExpiration ? "…" : "Définir"}
+            </button>
+          </form>
         </div>
 
         {feedback && (

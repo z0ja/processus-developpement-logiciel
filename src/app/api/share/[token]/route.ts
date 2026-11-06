@@ -50,6 +50,7 @@ export async function GET(
     token: shareLink.token,
     file: shareLink.file,
     sharedAt: shareLink.createdAt,
+    expiresAt: shareLink.expiresAt,
     passwordProtected: Boolean(shareLink.password),
   });
 }

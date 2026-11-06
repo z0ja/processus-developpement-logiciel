@@ -13,6 +13,7 @@ export type FileItem = {
     id: string;
     token: string;
     createdAt: string;
+    expiresAt?: string | null;
     hasPassword?: boolean;
   }>;
 };
@@ -32,6 +33,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
     fileName: string;
     shareUrl: string;
     hasPassword: boolean;
+    expiresAt: string | null;
   } | null>(null);
 
   const reloadFiles = useCallback(async () => {
@@ -83,6 +85,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
         fileName: file.name,
         shareUrl: data.shareUrl,
         hasPassword: Boolean(data.hasPassword),
+        expiresAt: data.expiresAt ?? file.shareLinks?.[0]?.expiresAt ?? null,
       });
       reloadFiles();
     } catch {
@@ -113,6 +116,9 @@ export function FileList({ refreshTrigger }: FileListProps) {
           const latestShare = file.shareLinks?.[0];
           const isShared = Boolean(latestShare);
           const isPasswordProtected = Boolean(latestShare?.hasPassword);
+          const isExpired = Boolean(
+            latestShare?.expiresAt && new Date(latestShare.expiresAt) < new Date()
+          );
           return (
             <div
               key={file.id}
@@ -125,9 +131,19 @@ export function FileList({ refreshTrigger }: FileListProps) {
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">
                   {formatSize(file.size)} • {new Date(file.createdAt).toLocaleDateString("fr-FR")}
                   {isShared && (
-                    <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                      {isPasswordProtected ? "🔒 Partagé" : "Partagé"}
-                    </span>
+                    isExpired ? (
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
+                        ⚠️ Expiré
+                      </span>
+                    ) : latestShare?.expiresAt ? (
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                        {isPasswordProtected ? "🔒 " : ""}Partagé (expire le {new Date(latestShare.expiresAt).toLocaleDateString("fr-FR")})
+                      </span>
+                    ) : (
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                        {isPasswordProtected ? "🔒 Partagé" : "Partagé"}
+                      </span>
+                    )
                   )}
                 </span>
               </div>
@@ -161,6 +177,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
           fileName={activeShare.fileName}
           shareUrl={activeShare.shareUrl}
           initialHasPassword={activeShare.hasPassword}
+          initialExpiresAt={activeShare.expiresAt}
           onClose={() => setActiveShare(null)}
           onRevoked={reloadFiles}
           onUpdated={reloadFiles}
