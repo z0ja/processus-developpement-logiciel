@@ -102,7 +102,13 @@ npm run build
 npm start -- -p <port>
 ```
 
-Après chaque mise à jour de `main` : `git pull && npm ci && npm run db:deploy && npm run build`, puis relancer `npm start`.
+Après chaque merge sur `main`, depuis le dossier du projet sur le serveur :
+
+```bash
+./scripts/deploy-pedago.sh            # port 3333 par défaut, ou PORT=<port> ./scripts/deploy-pedago.sh
+```
+
+Le script arrête l'app, fait `git pull`, lance `npm ci` uniquement si les dépendances ont changé, applique les migrations (`db:deploy`), rebuild puis relance l'app en arrière-plan (logs dans `app.log`) et vérifie qu'elle répond. L'app est arrêtée **avant** `npm ci` : sur le home NFS, un processus Next encore actif verrouille `node_modules` (erreurs `ENOTEMPTY` / `EBUSY`).
 
 > `npm run db:migrate` (création de migrations) reste réservé au développement local : il a besoin de créer une base temporaire, ce que le serveur n'autorise pas.
 
