@@ -16,6 +16,13 @@ type ShareModalProps = {
   onChanged: () => void;
 };
 
+/** Réponse de POST / PATCH /api/files/:id/share (US-C1, US-D1, US-D2). */
+type LinkState = {
+  shareUrl: string;
+  hasPassword?: boolean;
+  expiresAt?: string | null;
+};
+
 type Recipient = {
   id: string;
   createdAt: string;
@@ -242,6 +249,13 @@ function LinkShareSection({
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function applyLinkState(data: LinkState) {
+    setShareUrl(data.shareUrl);
+    setHasPassword(Boolean(data.hasPassword));
+    setExpiresAt(data.expiresAt ?? null);
+    onChanged();
+  }
+
   async function handleGenerate() {
     setBusy(true);
     setError(null);
@@ -252,10 +266,7 @@ function LinkShareSection({
         setError(data.error ?? "Erreur lors de la génération du lien.");
         return;
       }
-      setShareUrl(data.shareUrl);
-      setHasPassword(Boolean(data.hasPassword));
-      setExpiresAt(data.expiresAt ?? null);
-      onChanged();
+      applyLinkState(data);
     } catch {
       setError("Erreur réseau lors de la génération du lien.");
     } finally {
@@ -305,50 +316,26 @@ function LinkShareSection({
             ? "Ce lien a expiré. Définissez une nouvelle date d'expiration pour le réactiver."
             : shareUrl && hasPassword
               ? "Le lien est protégé : le mot de passe sera demandé avant le téléchargement."
-              : "Toute personne disposant du lien peut télécharger le fichier, sans compte."}
+              : shareUrl
+                ? "Toute personne disposant du lien peut télécharger le fichier, sans compte."
+                : "Toute personne disposant du lien pourra télécharger le fichier, sans compte. Définir un mot de passe ou une expiration crée le lien."}
         </p>
       </div>
 
       {shareUrl ? (
-        <>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              readOnly
-              value={shareUrl}
-              aria-label="Lien de partage"
-              onClick={(e) => (e.target as HTMLInputElement).select()}
-              className={`${inputClassName} font-mono`}
-            />
-            <button type="button" onClick={handleCopy} className={primaryButtonClassName}>
-              {copied ? "✓ Copié !" : "Copier"}
-            </button>
-          </div>
-          <LinkPasswordForm
-            fileId={fileId}
-            hasPassword={hasPassword}
-            onPasswordChange={(value) => {
-              setHasPassword(value);
-              onChanged();
-            }}
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            readOnly
+            value={shareUrl}
+            aria-label="Lien de partage"
+            onClick={(e) => (e.target as HTMLInputElement).select()}
+            className={`${inputClassName} font-mono`}
           />
-          <LinkExpirationForm
-            fileId={fileId}
-            expiresAt={expiresAt}
-            onExpirationChange={(value) => {
-              setExpiresAt(value);
-              onChanged();
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleRevoke}
-            disabled={busy}
-            className="self-start text-xs text-red-600 hover:underline disabled:opacity-50 dark:text-red-400"
-          >
-            {busy ? "Révocation…" : "Désactiver le lien"}
+          <button type="button" onClick={handleCopy} className={primaryButtonClassName}>
+            {copied ? "✓ Copié !" : "Copier"}
           </button>
-        </>
+        </div>
       ) : (
         <button
           type="button"
@@ -360,6 +347,31 @@ function LinkShareSection({
         </button>
       )}
 
+      {/* Sans lien existant, définir un mot de passe ou une expiration crée le lien (POST). */}
+      <LinkPasswordForm
+        fileId={fileId}
+        hasLink={Boolean(shareUrl)}
+        hasPassword={hasPassword}
+        onLinkUpdated={applyLinkState}
+      />
+      <LinkExpirationForm
+        fileId={fileId}
+        hasLink={Boolean(shareUrl)}
+        expiresAt={expiresAt}
+        onLinkUpdated={applyLinkState}
+      />
+
+      {shareUrl && (
+        <button
+          type="button"
+          onClick={handleRevoke}
+          disabled={busy}
+          className="self-start text-xs text-red-600 hover:underline disabled:opacity-50 dark:text-red-400"
+        >
+          {busy ? "Révocation…" : "Désactiver le lien"}
+        </button>
+      )}
+
       {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
     </section>
   );
@@ -368,12 +380,14 @@ function LinkShareSection({
 // US-D2 : définir, modifier ou retirer le mot de passe du lien de partage.
 function LinkPasswordForm({
   fileId,
+  hasLink,
   hasPassword,
-  onPasswordChange,
+  onLinkUpdated,
 }: {
   fileId: string;
+  hasLink: boolean;
   hasPassword: boolean;
-  onPasswordChange: (hasPassword: boolean) => void;
+  onLinkUpdated: (link: LinkState) => void;
 }) {
   const [passwordInput, setPasswordInput] = useState("");
   const [saving, setSaving] = useState(false);
@@ -386,7 +400,7 @@ function LinkPasswordForm({
     setFeedback(null);
     try {
       const res = await fetch(`/api/files/${fileId}/share`, {
-        method: "PATCH",
+        method: hasLink ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
@@ -404,7 +418,7 @@ function LinkPasswordForm({
             ? "Mot de passe mis à jour avec succès."
             : "Lien désormais protégé par mot de passe."
       );
-      onPasswordChange(nowProtected);
+      onLinkUpdated(data);
     } catch {
       setError("Erreur réseau lors de la mise à jour du mot de passe.");
     } finally {
@@ -491,12 +505,14 @@ const QUICK_EXPIRATIONS = [
 // US-D1 : définir, modifier ou retirer la date d'expiration du lien de partage.
 function LinkExpirationForm({
   fileId,
+  hasLink,
   expiresAt,
-  onExpirationChange,
+  onLinkUpdated,
 }: {
   fileId: string;
+  hasLink: boolean;
   expiresAt: string | null;
-  onExpirationChange: (expiresAt: string | null) => void;
+  onLinkUpdated: (link: LinkState) => void;
 }) {
   const [customDateTime, setCustomDateTime] = useState("");
   const [saving, setSaving] = useState(false);
@@ -512,7 +528,7 @@ function LinkExpirationForm({
     setFeedback(null);
     try {
       const res = await fetch(`/api/files/${fileId}/share`, {
-        method: "PATCH",
+        method: hasLink ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ expiresAt: targetDate ? targetDate.toISOString() : null }),
       });
@@ -527,7 +543,7 @@ function LinkExpirationForm({
           ? `Date d'expiration définie au ${new Date(data.expiresAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}.`
           : "Date d'expiration retirée (lien permanent)."
       );
-      onExpirationChange(data.expiresAt ?? null);
+      onLinkUpdated(data);
     } catch {
       setError("Erreur réseau lors de la modification de l'expiration.");
     } finally {
