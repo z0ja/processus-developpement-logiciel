@@ -9,7 +9,12 @@ export type FileItem = {
   mimeType: string;
   size: number;
   createdAt: string;
-  shareLinks?: Array<{ id: string; token: string; createdAt: string }>;
+  shareLinks?: Array<{
+    id: string;
+    token: string;
+    createdAt: string;
+    hasPassword?: boolean;
+  }>;
   _count?: { shares: number };
 };
 
@@ -81,7 +86,9 @@ export function FileList({ refreshTrigger }: FileListProps) {
     <>
       <div className="flex flex-col gap-2">
         {files.map((file) => {
-          const hasLink = (file.shareLinks?.length ?? 0) > 0;
+          const latestLink = file.shareLinks?.[0];
+          const hasLink = Boolean(latestLink);
+          const isPasswordProtected = Boolean(latestLink?.hasPassword);
           const recipientCount = file._count?.shares ?? 0;
           return (
             <div
@@ -96,7 +103,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
                   {formatSize(file.size)} • {new Date(file.createdAt).toLocaleDateString("fr-FR")}
                   {hasLink && (
                     <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                      Lien
+                      {isPasswordProtected ? "🔒 Lien" : "Lien"}
                     </span>
                   )}
                   {recipientCount > 0 && (
@@ -139,6 +146,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
               ? `${window.location.origin}/share/${activeShare.shareLinks[0].token}`
               : null
           }
+          initialHasPassword={Boolean(activeShare.shareLinks?.[0]?.hasPassword)}
           onClose={() => setActiveShare(null)}
           onChanged={reloadFiles}
         />

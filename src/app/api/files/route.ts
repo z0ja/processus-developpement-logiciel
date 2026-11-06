@@ -62,7 +62,7 @@ export async function GET() {
       size: true,
       createdAt: true,
       shareLinks: {
-        select: { id: true, token: true, createdAt: true },
+        select: { id: true, token: true, createdAt: true, password: true },
         take: 1,
         orderBy: { createdAt: "desc" },
       },
@@ -70,5 +70,15 @@ export async function GET() {
     },
   });
 
-  return Response.json(files);
+  const sanitized = files.map((f) => ({
+    ...f,
+    shareLinks: f.shareLinks.map(({ id, token, createdAt, password }) => ({
+      id,
+      token,
+      createdAt,
+      hasPassword: Boolean(password),
+    })),
+  }));
+
+  return Response.json(sanitized);
 }

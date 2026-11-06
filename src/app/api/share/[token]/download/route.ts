@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs";
 import { prisma } from "@/lib/prisma";
+import { isShareLinkUnlocked } from "@/lib/share-auth";
 import { resolveStoragePath } from "@/lib/storage";
 
 // US-C3 : Téléchargement public d'un fichier via un lien de partage.
@@ -24,6 +25,15 @@ export async function GET(
 
   if (shareLink.expiresAt && shareLink.expiresAt < new Date()) {
     return new NextResponse("Ce lien de partage a expiré", { status: 410 });
+  }
+
+  if (shareLink.password) {
+    const unlocked = await isShareLinkUnlocked(shareLink.id, shareLink.password);
+    if (!unlocked) {
+      return new NextResponse("Mot de passe requis pour télécharger ce fichier", {
+        status: 401,
+      });
+    }
   }
 
   let filePath: string;

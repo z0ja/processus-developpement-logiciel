@@ -7,6 +7,8 @@ type ShareModalProps = {
   fileName: string;
   /** URL du lien de partage existant (US-C1), ou `null` s'il n'y en a pas. */
   initialShareUrl: string | null;
+  /** Le lien existant est-il protégé par mot de passe (US-D2) ? */
+  initialHasPassword?: boolean;
   onClose: () => void;
   /** Appelé après toute modification du partage (lien ou destinataires). */
   onChanged: () => void;
@@ -24,7 +26,14 @@ const primaryButtonClassName =
 const inputClassName =
   "flex-1 min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200";
 
-export function ShareModal({ fileId, fileName, initialShareUrl, onClose, onChanged }: ShareModalProps) {
+export function ShareModal({
+  fileId,
+  fileName,
+  initialShareUrl,
+  initialHasPassword = false,
+  onClose,
+  onChanged,
+}: ShareModalProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs"
@@ -57,7 +66,12 @@ export function ShareModal({ fileId, fileName, initialShareUrl, onClose, onChang
 
         <div className="my-5 border-t border-zinc-100 dark:border-zinc-800" />
 
-        <LinkShareSection fileId={fileId} initialShareUrl={initialShareUrl} onChanged={onChanged} />
+        <LinkShareSection
+          fileId={fileId}
+          initialShareUrl={initialShareUrl}
+          initialHasPassword={initialHasPassword}
+          onChanged={onChanged}
+        />
 
         <div className="flex justify-end border-t border-zinc-100 pt-4 mt-5 dark:border-zinc-800">
           <button
@@ -201,16 +215,20 @@ function UserShareSection({ fileId, onChanged }: { fileId: string; onChanged: ()
 }
 
 // US-C1 : lien de partage public (généré à la demande).
+// US-D2 : protection facultative du lien par mot de passe.
 function LinkShareSection({
   fileId,
   initialShareUrl,
+  initialHasPassword,
   onChanged,
 }: {
   fileId: string;
   initialShareUrl: string | null;
+  initialHasPassword: boolean;
   onChanged: () => void;
 }) {
   const [shareUrl, setShareUrl] = useState(initialShareUrl);
+  const [hasPassword, setHasPassword] = useState(initialHasPassword);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -226,6 +244,7 @@ function LinkShareSection({
         return;
       }
       setShareUrl(data.shareUrl);
+      setHasPassword(Boolean(data.hasPassword));
       onChanged();
     } catch {
       setError("Erreur réseau lors de la génération du lien.");
@@ -257,6 +276,7 @@ function LinkShareSection({
         return;
       }
       setShareUrl(null);
+      setHasPassword(false);
       onChanged();
     } catch {
       setError("Erreur réseau lors de la révocation.");
@@ -270,7 +290,9 @@ function LinkShareSection({
       <div>
         <h3 className={sectionTitleClassName}>Par lien public</h3>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-          Toute personne disposant du lien peut télécharger le fichier, sans compte.
+          {shareUrl && hasPassword
+            ? "Le lien est protégé : le mot de passe sera demandé avant le téléchargement."
+            : "Toute personne disposant du lien peut télécharger le fichier, sans compte."}
         </p>
       </div>
 
@@ -289,6 +311,14 @@ function LinkShareSection({
               {copied ? "✓ Copié !" : "Copier"}
             </button>
           </div>
+          <LinkPasswordForm
+            fileId={fileId}
+            hasPassword={hasPassword}
+            onPasswordChange={(value) => {
+              setHasPassword(value);
+              onChanged();
+            }}
+          />
           <button
             type="button"
             onClick={handleRevoke}
@@ -311,5 +341,117 @@ function LinkShareSection({
 
       {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
     </section>
+  );
+}
+
+// US-D2 : définir, modifier ou retirer le mot de passe du lien de partage.
+function LinkPasswordForm({
+  fileId,
+  hasPassword,
+  onPasswordChange,
+}: {
+  fileId: string;
+  hasPassword: boolean;
+  onPasswordChange: (hasPassword: boolean) => void;
+}) {
+  const [passwordInput, setPasswordInput] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function updatePassword(password: string | null) {
+    setSaving(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/files/${fileId}/share`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Impossible de mettre à jour le mot de passe.");
+        return;
+      }
+      const nowProtected = Boolean(data.hasPassword);
+      setPasswordInput("");
+      setFeedback(
+        !nowProtected
+          ? "Protection par mot de passe retirée."
+          : hasPassword
+            ? "Mot de passe mis à jour avec succès."
+            : "Lien désormais protégé par mot de passe."
+      );
+      onPasswordChange(nowProtected);
+    } catch {
+      setError("Erreur réseau lors de la mise à jour du mot de passe.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!passwordInput.trim()) {
+      setError("Veuillez saisir un mot de passe.");
+      return;
+    }
+    updatePassword(passwordInput);
+  }
+
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-800/40">
+      <div className="flex items-center justify-between gap-2 mb-2.5">
+        <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
+          Protection par mot de passe
+        </span>
+        {hasPassword ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+            🔒 Activée
+          </span>
+        ) : (
+          <span className="inline-flex items-center rounded-full bg-zinc-200/80 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+            Désactivée
+          </span>
+        )}
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+        <input
+          type="password"
+          value={passwordInput}
+          onChange={(e) => setPasswordInput(e.target.value)}
+          placeholder={hasPassword ? "Nouveau mot de passe…" : "Définir un mot de passe…"}
+          aria-label="Mot de passe du lien"
+          maxLength={128}
+          disabled={saving}
+          className="flex-1 min-w-0 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+        />
+        <button
+          type="submit"
+          disabled={saving || !passwordInput.trim()}
+          className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+          {saving ? "…" : hasPassword ? "Modifier" : "Protéger"}
+        </button>
+      </form>
+
+      {hasPassword && (
+        <div className="mt-2 flex justify-end">
+          <button
+            type="button"
+            onClick={() => updatePassword(null)}
+            disabled={saving}
+            className="text-[11px] text-zinc-500 hover:text-red-600 hover:underline disabled:opacity-50 dark:text-zinc-400 dark:hover:text-red-400"
+          >
+            Retirer le mot de passe
+          </button>
+        </div>
+      )}
+
+      {feedback && <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">{feedback}</p>}
+      {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+    </div>
   );
 }
