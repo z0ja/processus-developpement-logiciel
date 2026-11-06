@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { getCurrentUser } from "@/lib/current-user";
+import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
+import { validateSharePassword } from "@/lib/share-auth";
 
 // US-C1 : Générer un lien de partage pour un fichier.
 export async function POST(
@@ -23,6 +25,34 @@ export async function POST(
     return Response.json({ error: "Fichier introuvable." }, { status: 404 });
   }
 
+  let hasPasswordField = false;
+  let requestedPassword: unknown = undefined;
+  try {
+    const rawBody = await request.text();
+    if (rawBody.trim().length > 0) {
+      const parsed = JSON.parse(rawBody) as Record<string, unknown>;
+      if (parsed && typeof parsed === "object" && "password" in parsed) {
+        hasPasswordField = true;
+        requestedPassword = parsed.password;
+      }
+    }
+  } catch {
+    return Response.json({ error: "Corps JSON invalide." }, { status: 400 });
+  }
+
+  let passwordHash: string | null | undefined = undefined;
+  if (hasPasswordField) {
+    if (requestedPassword === null || requestedPassword === "") {
+      passwordHash = null;
+    } else {
+      const check = validateSharePassword(requestedPassword);
+      if (!check.valid) {
+        return Response.json({ error: check.error }, { status: 400 });
+      }
+      passwordHash = await hashPassword(requestedPassword as string);
+    }
+  }
+
   // Récupérer un lien existant ou en créer un nouveau
   let shareLink = await prisma.shareLink.findFirst({
     where: { fileId: file.id },
@@ -35,7 +65,13 @@ export async function POST(
       data: {
         token,
         fileId: file.id,
+        password: passwordHash ?? null,
       },
+    });
+  } else if (passwordHash !== undefined) {
+    shareLink = await prisma.shareLink.update({
+      where: { id: shareLink.id },
+      data: { password: passwordHash },
     });
   }
 
@@ -48,9 +84,76 @@ export async function POST(
       token: shareLink.token,
       shareUrl,
       createdAt: shareLink.createdAt,
+      hasPassword: Boolean(shareLink.password),
     },
     { status: 200 }
   );
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return Response.json({ error: "Authentification requise." }, { status: 401 });
+  }
+
+  const { id: fileId } = await params;
+
+  const file = await prisma.file.findFirst({
+    where: { id: fileId, ownerId: user.id },
+  });
+
+  if (!file) {
+    return Response.json({ error: "Fichier introuvable." }, { status: 404 });
+  }
+
+  let body: { password?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "Corps JSON attendu." }, { status: 400 });
+  }
+
+  const existingLink = await prisma.shareLink.findFirst({
+    where: { fileId: file.id },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!existingLink) {
+    return Response.json(
+      { error: "Aucun lien de partage actif pour ce fichier." },
+      { status: 404 }
+    );
+  }
+
+  let nextPasswordHash: string | null;
+  if (body.password === null || body.password === "") {
+    nextPasswordHash = null;
+  } else {
+    const check = validateSharePassword(body.password);
+    if (!check.valid) {
+      return Response.json({ error: check.error }, { status: 400 });
+    }
+    nextPasswordHash = await hashPassword(body.password as string);
+  }
+
+  const updated = await prisma.shareLink.update({
+    where: { id: existingLink.id },
+    data: { password: nextPasswordHash },
+  });
+
+  const url = new URL(request.url);
+  const shareUrl = `${url.origin}/share/${updated.token}`;
+
+  return Response.json({
+    id: updated.id,
+    token: updated.token,
+    shareUrl,
+    createdAt: updated.createdAt,
+    hasPassword: Boolean(updated.password),
+  });
 }
 
 // US-C1 : Révoquer le lien de partage d'un fichier.
@@ -79,4 +182,3 @@ export async function DELETE(
 
   return Response.json({ message: "Lien de partage révoqué avec succès." });
 }
-

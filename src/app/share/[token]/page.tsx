@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { isShareLinkUnlocked } from "@/lib/share-auth";
+import { SharePasswordForm } from "./password-form";
 
 // US-C3 : Page publique de consultation et de téléchargement d'un fichier partagé.
 // Réutilise l'approche ergonomique et le style de src/app/download/page.tsx.
@@ -53,6 +55,40 @@ export default async function SharedFilePage({
     );
   }
 
+  const unlocked = shareLink.password
+    ? await isShareLinkUnlocked(shareLink.id, shareLink.password)
+    : true;
+
+  if (!unlocked) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-zinc-50 dark:bg-black font-sans">
+        <div className="bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col items-center gap-5 max-w-md w-full text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-900 flex items-center justify-center text-amber-600 dark:text-amber-400 text-2xl">
+            🔒
+          </div>
+
+          <div className="flex flex-col gap-1 w-full">
+            <span className="text-xs font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">
+              Accès protégé
+            </span>
+            <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+              Lien protégé par mot de passe
+            </h1>
+            <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-1">
+              Saisissez le mot de passe communiqué par le propriétaire pour accéder au téléchargement.
+            </p>
+          </div>
+
+          <SharePasswordForm token={shareLink.token} />
+
+          <div className="border-t border-zinc-100 dark:border-zinc-800 w-full pt-4 text-xs text-zinc-400">
+            Partagé via le Service de partage de fichiers
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   const { file } = shareLink;
 
   return (
@@ -97,4 +133,3 @@ function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 }
-

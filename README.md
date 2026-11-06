@@ -40,6 +40,14 @@ npm run dev                 # http://localhost:3000
 | `POST` | `/api/auth/login` | US-A2 | Connexion (`application/json`, champs `email`, `password`). Réponses : `200` + utilisateur et cookie de session `session` (`HttpOnly`, 7 jours), `400` si champs manquants, `401` si identifiants incorrects. |
 | `POST` | `/api/auth/logout` | US-A2 | Déconnexion : supprime la session en base et le cookie. Réponse : `200` (même sans session ouverte). |
 | `POST` | `/api/files` | US-B1 | Upload d'un fichier (`multipart/form-data`, champ `file`). Réponses : `201` + métadonnées du fichier, `400` si fichier absent ou vide, `401` si non authentifié. |
+| `GET` | `/api/files` | US-B2 | Liste des fichiers de l'utilisateur connecté et état de leurs liens de partage (`hasPassword`). |
+| `GET` | `/api/files/[id]/download` | US-B3 | Téléchargement direct d'un fichier par son propriétaire (`401` si non connecté, `404` si introuvable). |
+| `POST` | `/api/files/[id]/share` | US-C1 / US-D2 | Génère ou récupère le lien de partage d'un fichier (corps JSON optionnel `{ "password" }`). |
+| `PATCH` | `/api/files/[id]/share` | US-D2 | Définit, modifie ou retire (`{ "password": null }`) le mot de passe d'un lien de partage existant. |
+| `DELETE` | `/api/files/[id]/share` | US-C1 | Révoque le lien de partage d'un fichier. |
+| `GET` | `/api/share/[token]` | US-C3 / US-D2 | Métadonnées publiques d'un lien partagé (`401` si protégé par mot de passe et non déverrouillé). |
+| `POST` | `/api/share/[token]` | US-D2 | Vérifie le mot de passe (`{ "password" }`) et pose un cookie `HttpOnly` de déverrouillage (`401` si incorrect). |
+| `GET` | `/api/share/[token]/download` | US-C3 / US-D2 | Téléchargement du fichier partagé (`401` si protégé par mot de passe et non déverrouillé, `410` si expiré). |
 
 ```bash
 # Inscription (US-A1)

@@ -9,7 +9,12 @@ export type FileItem = {
   mimeType: string;
   size: number;
   createdAt: string;
-  shareLinks?: Array<{ id: string; token: string; createdAt: string }>;
+  shareLinks?: Array<{
+    id: string;
+    token: string;
+    createdAt: string;
+    hasPassword?: boolean;
+  }>;
 };
 
 type FileListProps = {
@@ -26,6 +31,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
     fileId: string;
     fileName: string;
     shareUrl: string;
+    hasPassword: boolean;
   } | null>(null);
 
   const reloadFiles = useCallback(async () => {
@@ -76,6 +82,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
         fileId: file.id,
         fileName: file.name,
         shareUrl: data.shareUrl,
+        hasPassword: Boolean(data.hasPassword),
       });
       reloadFiles();
     } catch {
@@ -103,7 +110,9 @@ export function FileList({ refreshTrigger }: FileListProps) {
     <>
       <div className="flex flex-col gap-2">
         {files.map((file) => {
-          const isShared = (file.shareLinks?.length ?? 0) > 0;
+          const latestShare = file.shareLinks?.[0];
+          const isShared = Boolean(latestShare);
+          const isPasswordProtected = Boolean(latestShare?.hasPassword);
           return (
             <div
               key={file.id}
@@ -116,8 +125,8 @@ export function FileList({ refreshTrigger }: FileListProps) {
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">
                   {formatSize(file.size)} • {new Date(file.createdAt).toLocaleDateString("fr-FR")}
                   {isShared && (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                      Partagé
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                      {isPasswordProtected ? "🔒 Partagé" : "Partagé"}
                     </span>
                   )}
                 </span>
@@ -136,7 +145,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
                   type="button"
                   onClick={() => handleShare(file)}
                   className="rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-blue-700"
-                  title="Générer ou copier le lien de partage"
+                  title="Générer ou gérer le lien de partage"
                 >
                   Partager
                 </button>
@@ -151,8 +160,10 @@ export function FileList({ refreshTrigger }: FileListProps) {
           fileId={activeShare.fileId}
           fileName={activeShare.fileName}
           shareUrl={activeShare.shareUrl}
+          initialHasPassword={activeShare.hasPassword}
           onClose={() => setActiveShare(null)}
           onRevoked={reloadFiles}
+          onUpdated={reloadFiles}
         />
       )}
     </>
