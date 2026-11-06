@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { UploadForm } from "./upload-form";
 import { FileList } from "./file-list";
+import { SharedFileList } from "./shared-file-list";
 
 export function FileSection() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -31,6 +32,13 @@ export function FileSection() {
           </button>
         </div>
         <FileList refreshTrigger={refreshTrigger} />
+      </section>
+
+      <section className="flex flex-col gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+          Fichiers partagés avec moi
+        </h2>
+        <SharedFileList refreshTrigger={refreshTrigger} />
       </section>
     </div>
   );

@@ -17,8 +17,9 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
 
-  files    File[]
-  sessions Session[]
+  files        File[]
+  sessions     Session[]
+  sharedWithMe FileShare[]
 }
 
 // US-A2 — Sessions de connexion. Seule l'empreinte SHA-256 du jeton est stockée :
@@ -48,6 +49,7 @@ model File {
   ownerId String
 
   shareLinks ShareLink[]
+  shares     FileShare[]
 
   @@index([ownerId])
 }
@@ -64,4 +66,20 @@ model ShareLink {
   fileId String
 
   @@index([fileId])
+}
+
+// US-C2 — Partage direct d'un fichier avec un autre utilisateur du service.
+// Un fichier ne peut être partagé qu'une fois avec un même destinataire.
+model FileShare {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  file   File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  fileId String
+
+  recipient   User   @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId String
+
+  @@unique([fileId, recipientId])
+  @@index([recipientId])
 }

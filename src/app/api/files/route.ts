@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   }
 }
 
-// US-B2 : Liste des fichiers de l'utilisateur connecté avec l'état du partage (US-C1).
+// US-B2 : Liste des fichiers de l'utilisateur connecté avec l'état du partage (US-C1, US-C2).
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
@@ -66,6 +66,7 @@ export async function GET() {
         take: 1,
         orderBy: { createdAt: "desc" },
       },
+      _count: { select: { shares: true } }, // US-C2 : nombre d'utilisateurs destinataires
     },
   });
 

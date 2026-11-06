@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveStoragePath } from "@/lib/storage";
 
 // US-B3 : Téléchargement direct d'un fichier par son propriétaire.
+// US-C2 / US-C3 : également autorisé pour un utilisateur avec qui le fichier a été partagé.
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -17,7 +18,10 @@ export async function GET(
   const { id: fileId } = await params;
 
   const file = await prisma.file.findFirst({
-    where: { id: fileId, ownerId: user.id },
+    where: {
+      id: fileId,
+      OR: [{ ownerId: user.id }, { shares: { some: { recipientId: user.id } } }],
+    },
   });
 
   if (!file) {

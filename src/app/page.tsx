@@ -48,7 +48,7 @@ export default async function Home() {
         )}
 
         <footer className="flex items-center justify-between border-t border-zinc-100 pt-4 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-          <span>Sprint 2</span>
+          <span>Sprint 3</span>
           <div className="flex gap-3">
             <Link href="/register" className="underline hover:text-zinc-800 dark:hover:text-zinc-200">
               Inscription (US-A1)
