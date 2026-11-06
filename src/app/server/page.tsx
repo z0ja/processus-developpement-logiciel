@@ -25,7 +25,7 @@ export default async function ServerPage() {
         <h2>Utilisateurs inscrits ({users.length})</h2>
         
         {users.length === 0 ? (
-          <p>Aucun utilisateur n'est encore inscrit.</p>
+          <p>Aucun utilisateur n&apos;est encore inscrit.</p>
         ) : (
           <ul style={{ listStyle: "none", padding: 0 }}>
             {users.map((user) => (

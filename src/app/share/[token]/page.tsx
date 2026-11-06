@@ -109,6 +109,23 @@ export default async function SharedFilePage({
           <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-1">
             Taille : <strong>{formatSize(file.size)}</strong> • Type : {file.mimeType}
           </p>
+          {shareLink.expiresAt && (
+            <div className="mt-2 flex justify-center">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-800 border border-amber-200/60 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-900/60">
+                <span>⏱️</span>
+                <span>
+                  Valide jusqu&apos;au{" "}
+                  {new Date(shareLink.expiresAt).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Bouton de téléchargement — réutilise la cible /api/share/[token]/download */}

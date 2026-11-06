@@ -9,6 +9,8 @@ type ShareModalProps = {
   initialShareUrl: string | null;
   /** Le lien existant est-il protégé par mot de passe (US-D2) ? */
   initialHasPassword?: boolean;
+  /** Date d'expiration du lien existant (US-D1), au format ISO, ou `null`. */
+  initialExpiresAt?: string | null;
   onClose: () => void;
   /** Appelé après toute modification du partage (lien ou destinataires). */
   onChanged: () => void;
@@ -31,6 +33,7 @@ export function ShareModal({
   fileName,
   initialShareUrl,
   initialHasPassword = false,
+  initialExpiresAt = null,
   onClose,
   onChanged,
 }: ShareModalProps) {
@@ -41,7 +44,7 @@ export function ShareModal({
       aria-modal="true"
       aria-labelledby="share-modal-title"
     >
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900 dark:border dark:border-zinc-800">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900 dark:border dark:border-zinc-800">
         <div className="flex items-start justify-between gap-2 mb-5">
           <div className="min-w-0">
             <h2
@@ -70,6 +73,7 @@ export function ShareModal({
           fileId={fileId}
           initialShareUrl={initialShareUrl}
           initialHasPassword={initialHasPassword}
+          initialExpiresAt={initialExpiresAt}
           onChanged={onChanged}
         />
 
@@ -216,19 +220,24 @@ function UserShareSection({ fileId, onChanged }: { fileId: string; onChanged: ()
 
 // US-C1 : lien de partage public (généré à la demande).
 // US-D2 : protection facultative du lien par mot de passe.
+// US-D1 : date d'expiration facultative du lien.
 function LinkShareSection({
   fileId,
   initialShareUrl,
   initialHasPassword,
+  initialExpiresAt,
   onChanged,
 }: {
   fileId: string;
   initialShareUrl: string | null;
   initialHasPassword: boolean;
+  initialExpiresAt: string | null;
   onChanged: () => void;
 }) {
   const [shareUrl, setShareUrl] = useState(initialShareUrl);
   const [hasPassword, setHasPassword] = useState(initialHasPassword);
+  const [expiresAt, setExpiresAt] = useState<string | null>(initialExpiresAt);
+  const isExpired = Boolean(expiresAt && new Date(expiresAt) < new Date());
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -245,6 +254,7 @@ function LinkShareSection({
       }
       setShareUrl(data.shareUrl);
       setHasPassword(Boolean(data.hasPassword));
+      setExpiresAt(data.expiresAt ?? null);
       onChanged();
     } catch {
       setError("Erreur réseau lors de la génération du lien.");
@@ -277,6 +287,7 @@ function LinkShareSection({
       }
       setShareUrl(null);
       setHasPassword(false);
+      setExpiresAt(null);
       onChanged();
     } catch {
       setError("Erreur réseau lors de la révocation.");
@@ -290,9 +301,11 @@ function LinkShareSection({
       <div>
         <h3 className={sectionTitleClassName}>Par lien public</h3>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-          {shareUrl && hasPassword
-            ? "Le lien est protégé : le mot de passe sera demandé avant le téléchargement."
-            : "Toute personne disposant du lien peut télécharger le fichier, sans compte."}
+          {shareUrl && isExpired
+            ? "Ce lien a expiré. Définissez une nouvelle date d'expiration pour le réactiver."
+            : shareUrl && hasPassword
+              ? "Le lien est protégé : le mot de passe sera demandé avant le téléchargement."
+              : "Toute personne disposant du lien peut télécharger le fichier, sans compte."}
         </p>
       </div>
 
@@ -316,6 +329,14 @@ function LinkShareSection({
             hasPassword={hasPassword}
             onPasswordChange={(value) => {
               setHasPassword(value);
+              onChanged();
+            }}
+          />
+          <LinkExpirationForm
+            fileId={fileId}
+            expiresAt={expiresAt}
+            onExpirationChange={(value) => {
+              setExpiresAt(value);
               onChanged();
             }}
           />
@@ -449,6 +470,146 @@ function LinkPasswordForm({
           </button>
         </div>
       )}
+
+      {feedback && <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">{feedback}</p>}
+      {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+    </div>
+  );
+}
+
+const quickExpirationButtonClassName =
+  "rounded-md bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800";
+
+const HOUR_MS = 60 * 60 * 1000;
+const QUICK_EXPIRATIONS = [
+  { label: "+1 h", ms: HOUR_MS },
+  { label: "+24 h", ms: 24 * HOUR_MS },
+  { label: "+7 j", ms: 7 * 24 * HOUR_MS },
+  { label: "+30 j", ms: 30 * 24 * HOUR_MS },
+];
+
+// US-D1 : définir, modifier ou retirer la date d'expiration du lien de partage.
+function LinkExpirationForm({
+  fileId,
+  expiresAt,
+  onExpirationChange,
+}: {
+  fileId: string;
+  expiresAt: string | null;
+  onExpirationChange: (expiresAt: string | null) => void;
+}) {
+  const [customDateTime, setCustomDateTime] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [minDateTime] = useState(() => new Date(Date.now() + 60000).toISOString().slice(0, 16));
+
+  const isExpired = Boolean(expiresAt && new Date(expiresAt) < new Date());
+
+  async function updateExpiration(targetDate: Date | null) {
+    setSaving(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/files/${fileId}/share`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expiresAt: targetDate ? targetDate.toISOString() : null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Impossible de modifier la date d'expiration.");
+        return;
+      }
+      setCustomDateTime("");
+      setFeedback(
+        data.expiresAt
+          ? `Date d'expiration définie au ${new Date(data.expiresAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}.`
+          : "Date d'expiration retirée (lien permanent)."
+      );
+      onExpirationChange(data.expiresAt ?? null);
+    } catch {
+      setError("Erreur réseau lors de la modification de l'expiration.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!customDateTime) {
+      setError("Veuillez sélectionner une date et heure.");
+      return;
+    }
+    const chosen = new Date(customDateTime);
+    if (Number.isNaN(chosen.getTime()) || chosen.getTime() <= Date.now()) {
+      setError("Veuillez choisir une date future.");
+      return;
+    }
+    updateExpiration(chosen);
+  }
+
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-800/40">
+      <div className="flex items-center justify-between gap-2 mb-2.5">
+        <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">Date d&apos;expiration</span>
+        {isExpired ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
+            ⚠️ Expiré
+          </span>
+        ) : expiresAt ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+            ⏱️ {new Date(expiresAt).toLocaleDateString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        ) : (
+          <span className="inline-flex items-center rounded-full bg-zinc-200/80 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+            Désactivée (illimité)
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 mb-2.5">
+        {QUICK_EXPIRATIONS.map(({ label, ms }) => (
+          <button
+            key={label}
+            type="button"
+            disabled={saving}
+            onClick={() => updateExpiration(new Date(Date.now() + ms))}
+            className={quickExpirationButtonClassName}
+          >
+            {label}
+          </button>
+        ))}
+        {expiresAt && (
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => updateExpiration(null)}
+            className={`${quickExpirationButtonClassName} hover:text-red-600 dark:hover:text-red-400`}
+          >
+            Sans limite
+          </button>
+        )}
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+        <input
+          type="datetime-local"
+          value={customDateTime}
+          min={minDateTime}
+          onChange={(e) => setCustomDateTime(e.target.value)}
+          aria-label="Date d'expiration personnalisée"
+          disabled={saving}
+          className="flex-1 min-w-0 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+        />
+        <button
+          type="submit"
+          disabled={saving || !customDateTime}
+          className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+          {saving ? "…" : "Définir"}
+        </button>
+      </form>
 
       {feedback && <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">{feedback}</p>}
       {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}

@@ -13,6 +13,7 @@ export type FileItem = {
     id: string;
     token: string;
     createdAt: string;
+    expiresAt?: string | null;
     hasPassword?: boolean;
   }>;
   _count?: { shares: number };
@@ -89,6 +90,8 @@ export function FileList({ refreshTrigger }: FileListProps) {
           const latestLink = file.shareLinks?.[0];
           const hasLink = Boolean(latestLink);
           const isPasswordProtected = Boolean(latestLink?.hasPassword);
+          const linkExpiresAt = latestLink?.expiresAt ? new Date(latestLink.expiresAt) : null;
+          const isLinkExpired = Boolean(linkExpiresAt && linkExpiresAt < new Date());
           const recipientCount = file._count?.shares ?? 0;
           return (
             <div
@@ -101,11 +104,17 @@ export function FileList({ refreshTrigger }: FileListProps) {
                 </span>
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">
                   {formatSize(file.size)} • {new Date(file.createdAt).toLocaleDateString("fr-FR")}
-                  {hasLink && (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                      {isPasswordProtected ? "🔒 Lien" : "Lien"}
-                    </span>
-                  )}
+                  {hasLink &&
+                    (isLinkExpired ? (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
+                        ⚠️ Lien expiré
+                      </span>
+                    ) : (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                        {isPasswordProtected ? "🔒 " : ""}Lien
+                        {linkExpiresAt && ` (expire le ${linkExpiresAt.toLocaleDateString("fr-FR")})`}
+                      </span>
+                    ))}
                   {recipientCount > 0 && (
                     <span className="ml-2 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
                       {recipientCount} utilisateur{recipientCount > 1 ? "s" : ""}
@@ -147,6 +156,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
               : null
           }
           initialHasPassword={Boolean(activeShare.shareLinks?.[0]?.hasPassword)}
+          initialExpiresAt={activeShare.shareLinks?.[0]?.expiresAt ?? null}
           onClose={() => setActiveShare(null)}
           onChanged={reloadFiles}
         />

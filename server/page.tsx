@@ -68,7 +68,7 @@ export default function RegisterPage() {
             style={{ width: "100%", padding: "0.5rem" }}
           />
         </div>
-        <button type="submit" style={{ padding: "0.5rem", cursor: "pointer" }}>S'inscrire</button>
+        <button type="submit" style={{ padding: "0.5rem", cursor: "pointer" }}>S&apos;inscrire</button>
       </form>
       {message && <p style={{ marginTop: "1rem", fontWeight: "bold" }}>{message}</p>}
     </div>
