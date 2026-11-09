@@ -5,7 +5,7 @@ import { isPreviewable } from "@/lib/file-preview";
 import { SharePasswordForm } from "./password-form";
 
 // US-C3 : Page publique de consultation et de téléchargement d'un fichier partagé.
-// Réutilise l'approche ergonomique et le style de src/app/download/page.tsx.
+// US-D3 : affiche le quota restant, désactive le bouton si épuisé.
 export default async function SharedFilePage({
   params,
 }: {
@@ -28,7 +28,7 @@ export default async function SharedFilePage({
     },
   });
 
-  const isExpired = shareLink?.expiresAt && shareLink.expiresAt < new Date();
+  const isExpired = Boolean(shareLink?.expiresAt && shareLink.expiresAt < new Date());
 
   if (!shareLink || isExpired) {
     return (
@@ -91,11 +91,15 @@ export default async function SharedFilePage({
   }
 
   const { file } = shareLink;
+  const remainingDownloads =
+    shareLink.maxDownloads === null
+      ? null
+      : Math.max(0, shareLink.maxDownloads - shareLink.downloadCount);
+  const isExhausted = remainingDownloads === 0;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-zinc-50 dark:bg-black font-sans">
       <div className="bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col items-center gap-5 max-w-md w-full text-center">
-        {/* En-tête avec icône document */}
         <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-400 text-2xl">
           📄
         </div>
@@ -110,6 +114,7 @@ export default async function SharedFilePage({
           <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-1">
             Taille : <strong>{formatSize(file.size)}</strong> • Type : {file.mimeType}
           </p>
+
           {shareLink.expiresAt && (
             <div className="mt-2 flex justify-center">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-800 border border-amber-200/60 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-900/60">
@@ -127,19 +132,50 @@ export default async function SharedFilePage({
               </span>
             </div>
           )}
+
+          {/* US-D3 : badge de quota */}
+          {remainingDownloads !== null && (
+            <div className="mt-2 flex justify-center">
+              {isExhausted ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-[11px] font-medium text-red-700 border border-red-200/60 dark:bg-red-950/50 dark:text-red-300 dark:border-red-900/60">
+                  <span>⛔</span>
+                  <span>Quota épuisé — plus aucun téléchargement disponible</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-medium text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-900/60">
+                  <span>📥</span>
+                  <span>
+                    {remainingDownloads} téléchargement
+                    {remainingDownloads > 1 ? "s" : ""} restant
+                    {remainingDownloads > 1 ? "s" : ""}
+                  </span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Bouton de téléchargement — réutilise la cible /api/share/[token]/download */}
-        <a
-          href={`/api/share/${shareLink.token}/download`}
-          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition shadow-sm"
-        >
-          <span>Télécharger le fichier</span>
-          <span>↓</span>
-        </a>
+        {isExhausted ? (
+          <button
+            type="button"
+            disabled
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-zinc-200 text-zinc-500 font-medium rounded-xl cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-500"
+          >
+            <span>Téléchargement indisponible</span>
+          </button>
+        ) : (
+          <a
+            href={`/api/share/${shareLink.token}/download`}
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition shadow-sm"
+          >
+            <span>Télécharger le fichier</span>
+            <span>↓</span>
+          </a>
+        )}
 
-        {/* US-B5 : ouverture dans le navigateur, uniquement pour les types sûrs */}
-        {isPreviewable(file.mimeType, file.name) && (
+        {/* US-B5 : ouverture dans le navigateur, uniquement pour les types sûrs.
+            US-D3 : l'ouverture consomme le quota comme un téléchargement. */}
+        {!isExhausted && isPreviewable(file.mimeType, file.name) && (
           <a
             href={`/api/share/${shareLink.token}/open`}
             target="_blank"
