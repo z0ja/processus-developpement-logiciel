@@ -20,7 +20,7 @@ export async function GET(
   const file = await prisma.file.findFirst({
     where: {
       id: fileId,
-      OR: [{ ownerId: user.id }, { shares: { some: { recipientId: user.id } } }],
+	  OR: [{ ownerId: user.id }, { fileShares: { some: { recipientId: user.id } } }],
     },
   });
 

@@ -4,7 +4,7 @@ import { isShareLinkUnlocked } from "@/lib/share-auth";
 import { streamStoredFile } from "@/lib/file-response";
 
 // US-B5 : Ouverture dans le navigateur d'un fichier partagé par lien.
-// Mêmes contrôles que /api/share/[token]/download (expiration, mot de passe).
+// Mêmes contrôles que /api/share/[token]/download (expiration, mot de passe, quota US-D3).
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ token: string }> }
@@ -31,5 +31,26 @@ export async function GET(
     }
   }
 
-  return streamStoredFile(shareLink.file, "open");
+  // US-D3 : ouvrir le fichier donne accès à son contenu, comme un téléchargement :
+  // on consomme donc une unité du quota, de façon atomique (même règle que
+  // /api/share/[token]/download), sinon l'ouverture permettrait de contourner la limite.
+  const consumed = await prisma.$executeRaw`
+    UPDATE "ShareLink"
+    SET "downloadCount" = "downloadCount" + 1
+    WHERE "id" = ${shareLink.id}
+      AND ("maxDownloads" IS NULL OR "downloadCount" < "maxDownloads")
+  `;
+  if (consumed === 0) {
+    return new NextResponse("Ce lien a atteint sa limite de téléchargements", { status: 410 });
+  }
+
+  const response = streamStoredFile(shareLink.file, "open");
+  if (!response.ok) {
+    // Le fichier n'a pas pu être servi : on rend l'unité consommée.
+    await prisma.shareLink.update({
+      where: { id: shareLink.id },
+      data: { downloadCount: { decrement: 1 } },
+    });
+  }
+  return response;
 }

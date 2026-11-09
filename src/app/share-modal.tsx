@@ -11,16 +11,22 @@ type ShareModalProps = {
   initialHasPassword?: boolean;
   /** Date d'expiration du lien existant (US-D1), au format ISO, ou `null`. */
   initialExpiresAt?: string | null;
+  /** US-D3 : limite de téléchargements du lien existant (`null` = illimité). */
+  initialMaxDownloads?: number | null;
+  /** US-D3 : nombre de téléchargements déjà consommés. */
+  initialDownloadCount?: number;
   onClose: () => void;
   /** Appelé après toute modification du partage (lien ou destinataires). */
   onChanged: () => void;
 };
 
-/** Réponse de POST / PATCH /api/files/:id/share (US-C1, US-D1, US-D2). */
+/** Réponse de POST / PATCH /api/files/:id/share (US-C1, US-D1, US-D2, US-D3). */
 type LinkState = {
   shareUrl: string;
   hasPassword?: boolean;
   expiresAt?: string | null;
+  maxDownloads?: number | null;
+  downloadCount?: number;
 };
 
 type Recipient = {
@@ -41,6 +47,8 @@ export function ShareModal({
   initialShareUrl,
   initialHasPassword = false,
   initialExpiresAt = null,
+  initialMaxDownloads = null,
+  initialDownloadCount = 0,
   onClose,
   onChanged,
 }: ShareModalProps) {
@@ -81,6 +89,8 @@ export function ShareModal({
           initialShareUrl={initialShareUrl}
           initialHasPassword={initialHasPassword}
           initialExpiresAt={initialExpiresAt}
+          initialMaxDownloads={initialMaxDownloads}
+          initialDownloadCount={initialDownloadCount}
           onChanged={onChanged}
         />
 
@@ -228,23 +238,31 @@ function UserShareSection({ fileId, onChanged }: { fileId: string; onChanged: ()
 // US-C1 : lien de partage public (généré à la demande).
 // US-D2 : protection facultative du lien par mot de passe.
 // US-D1 : date d'expiration facultative du lien.
+// US-D3 : limite facultative de téléchargements.
 function LinkShareSection({
   fileId,
   initialShareUrl,
   initialHasPassword,
   initialExpiresAt,
+  initialMaxDownloads,
+  initialDownloadCount,
   onChanged,
 }: {
   fileId: string;
   initialShareUrl: string | null;
   initialHasPassword: boolean;
   initialExpiresAt: string | null;
+  initialMaxDownloads: number | null;
+  initialDownloadCount: number;
   onChanged: () => void;
 }) {
   const [shareUrl, setShareUrl] = useState(initialShareUrl);
   const [hasPassword, setHasPassword] = useState(initialHasPassword);
   const [expiresAt, setExpiresAt] = useState<string | null>(initialExpiresAt);
+  const [maxDownloads, setMaxDownloads] = useState<number | null>(initialMaxDownloads);
+  const [downloadCount, setDownloadCount] = useState<number>(initialDownloadCount);
   const isExpired = Boolean(expiresAt && new Date(expiresAt) < new Date());
+  const isExhausted = maxDownloads !== null && downloadCount >= maxDownloads;
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -253,6 +271,8 @@ function LinkShareSection({
     setShareUrl(data.shareUrl);
     setHasPassword(Boolean(data.hasPassword));
     setExpiresAt(data.expiresAt ?? null);
+    setMaxDownloads(data.maxDownloads ?? null);
+    setDownloadCount(data.downloadCount ?? 0);
     onChanged();
   }
 
@@ -299,6 +319,8 @@ function LinkShareSection({
       setShareUrl(null);
       setHasPassword(false);
       setExpiresAt(null);
+      setMaxDownloads(null);
+      setDownloadCount(0);
       onChanged();
     } catch {
       setError("Erreur réseau lors de la révocation.");
@@ -314,11 +336,13 @@ function LinkShareSection({
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
           {shareUrl && isExpired
             ? "Ce lien a expiré. Définissez une nouvelle date d'expiration pour le réactiver."
-            : shareUrl && hasPassword
-              ? "Le lien est protégé : le mot de passe sera demandé avant le téléchargement."
-              : shareUrl
-                ? "Toute personne disposant du lien peut télécharger le fichier, sans compte."
-                : "Toute personne disposant du lien pourra télécharger le fichier, sans compte. Définir un mot de passe ou une expiration crée le lien."}
+            : shareUrl && isExhausted
+              ? "Ce lien a épuisé son quota de téléchargements. Réinitialisez le compteur ou augmentez la limite."
+              : shareUrl && hasPassword
+                ? "Le lien est protégé : le mot de passe sera demandé avant le téléchargement."
+                : shareUrl
+                  ? "Toute personne disposant du lien peut télécharger le fichier, sans compte."
+                  : "Toute personne disposant du lien pourra télécharger le fichier, sans compte. Définir un mot de passe, une expiration ou une limite de téléchargements crée le lien."}
         </p>
       </div>
 
@@ -347,7 +371,7 @@ function LinkShareSection({
         </button>
       )}
 
-      {/* Sans lien existant, définir un mot de passe ou une expiration crée le lien (POST). */}
+      {/* Sans lien existant, définir un mot de passe, une expiration ou une limite crée le lien (POST). */}
       <LinkPasswordForm
         fileId={fileId}
         hasLink={Boolean(shareUrl)}
@@ -358,6 +382,13 @@ function LinkShareSection({
         fileId={fileId}
         hasLink={Boolean(shareUrl)}
         expiresAt={expiresAt}
+        onLinkUpdated={applyLinkState}
+      />
+      <LinkDownloadLimitForm
+        fileId={fileId}
+        hasLink={Boolean(shareUrl)}
+        maxDownloads={maxDownloads}
+        downloadCount={downloadCount}
         onLinkUpdated={applyLinkState}
       />
 
@@ -626,6 +657,168 @@ function LinkExpirationForm({
           {saving ? "…" : "Définir"}
         </button>
       </form>
+
+      {feedback && <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">{feedback}</p>}
+      {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+    </div>
+  );
+}
+
+// =============================================================================
+// US-D3 : définir, modifier ou retirer la limite de téléchargements
+// =============================================================================
+const quickLimitButtonClassName =
+  "rounded-md bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800";
+
+const QUICK_LIMITS = [1, 3, 5, 10, 25, 100];
+
+function LinkDownloadLimitForm({
+  fileId,
+  hasLink,
+  maxDownloads,
+  downloadCount,
+  onLinkUpdated,
+}: {
+  fileId: string;
+  hasLink: boolean;
+  maxDownloads: number | null;
+  downloadCount: number;
+  onLinkUpdated: (link: LinkState) => void;
+}) {
+  const [customLimit, setCustomLimit] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const remaining = maxDownloads === null ? null : Math.max(0, maxDownloads - downloadCount);
+  const isExhausted = remaining === 0;
+
+  async function sendPatch(body: Record<string, unknown>, successMessage: string) {
+    setSaving(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/files/${fileId}/share`, {
+        method: hasLink ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Impossible de mettre à jour la limite.");
+        return;
+      }
+      setCustomLimit("");
+      setFeedback(successMessage);
+      onLinkUpdated(data);
+    } catch {
+      setError("Erreur réseau lors de la mise à jour de la limite.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function updateLimit(value: number | null) {
+    sendPatch(
+      { maxDownloads: value },
+      value === null
+        ? "Limite retirée (téléchargements illimités)."
+        : `Limite fixée à ${value} téléchargement${value > 1 ? "s" : ""}.`
+    );
+  }
+
+  function resetCounter() {
+    sendPatch({ downloadCount: 0 }, "Compteur de téléchargements remis à zéro.");
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const parsed = Number(customLimit);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      setError("Veuillez saisir un entier strictement positif.");
+      return;
+    }
+    updateLimit(parsed);
+  }
+
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 dark:border-zinc-800 dark:bg-zinc-800/40">
+      <div className="flex items-center justify-between gap-2 mb-2.5">
+        <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
+          Limite de téléchargements
+        </span>
+        {maxDownloads === null ? (
+          <span className="inline-flex items-center rounded-full bg-zinc-200/80 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+            Illimité ({downloadCount} téléchargé{downloadCount > 1 ? "s" : ""})
+          </span>
+        ) : isExhausted ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
+            ⚠️ Épuisé ({downloadCount}/{maxDownloads})
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+            {downloadCount}/{maxDownloads} utilisés
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 mb-2.5">
+        {QUICK_LIMITS.map((n) => (
+          <button
+            key={n}
+            type="button"
+            disabled={saving}
+            onClick={() => updateLimit(n)}
+            className={quickLimitButtonClassName}
+          >
+            {n}
+          </button>
+        ))}
+        {maxDownloads !== null && (
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => updateLimit(null)}
+            className={`${quickLimitButtonClassName} hover:text-red-600 dark:hover:text-red-400`}
+          >
+            Illimité
+          </button>
+        )}
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+        <input
+          type="number"
+          min={1}
+          step={1}
+          value={customLimit}
+          onChange={(e) => setCustomLimit(e.target.value)}
+          placeholder="Autre valeur…"
+          aria-label="Limite personnalisée de téléchargements"
+          disabled={saving}
+          className="flex-1 min-w-0 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+        />
+        <button
+          type="submit"
+          disabled={saving || !customLimit.trim()}
+          className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+          {saving ? "…" : "Définir"}
+        </button>
+      </form>
+
+      {downloadCount > 0 && (
+        <div className="mt-2 flex justify-end">
+          <button
+            type="button"
+            onClick={resetCounter}
+            disabled={saving}
+            className="text-[11px] text-zinc-500 hover:text-blue-600 hover:underline disabled:opacity-50 dark:text-zinc-400 dark:hover:text-blue-400"
+          >
+            Réinitialiser le compteur
+          </button>
+        </div>
+      )}
 
       {feedback && <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">{feedback}</p>}
       {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}

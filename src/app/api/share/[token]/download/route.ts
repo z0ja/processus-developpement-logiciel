@@ -5,7 +5,7 @@ import { isShareLinkUnlocked } from "@/lib/share-auth";
 import { resolveStoragePath } from "@/lib/storage";
 
 // US-C3 : Téléchargement public d'un fichier via un lien de partage.
-// Réutilise le modèle de streaming éprouvé dans src/app/api/download/route.ts.
+// US-D3 : Le quota de téléchargements est vérifié et consommé de façon atomique.
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ token: string }> }
@@ -14,9 +14,7 @@ export async function GET(
 
   const shareLink = await prisma.shareLink.findUnique({
     where: { token },
-    include: {
-      file: true,
-    },
+    include: { file: true },
   });
 
   if (!shareLink) {
@@ -36,14 +34,40 @@ export async function GET(
     }
   }
 
+  // US-D3 : consomme une unité du quota en une seule requête conditionnelle.
+  // `$executeRaw` renvoie le nombre de lignes affectées : 0 ⇒ quota épuisé
+  // ou lien supprimé entre-temps ⇒ on refuse le téléchargement.
+  const consumed = await prisma.$executeRaw`
+    UPDATE "ShareLink"
+    SET "downloadCount" = "downloadCount" + 1
+    WHERE "id" = ${shareLink.id}
+      AND ("maxDownloads" IS NULL OR "downloadCount" < "maxDownloads")
+  `;
+  if (consumed === 0) {
+    return new NextResponse(
+      "Ce lien a atteint sa limite de téléchargements",
+      { status: 410 }
+    );
+  }
+
   let filePath: string;
   try {
     filePath = resolveStoragePath(shareLink.file.storagePath);
   } catch {
+    // Rollback best-effort : on ne devrait pas arriver ici, mais si on a
+    // décompté un téléchargement qui ne peut pas aboutir, on le rend.
+    await prisma.shareLink.update({
+      where: { id: shareLink.id },
+      data: { downloadCount: { decrement: 1 } },
+    });
     return new NextResponse("Chemin de stockage invalide", { status: 500 });
   }
 
   if (!fs.existsSync(filePath)) {
+    await prisma.shareLink.update({
+      where: { id: shareLink.id },
+      data: { downloadCount: { decrement: 1 } },
+    });
     return new NextResponse("Fichier physique introuvable sur le serveur", { status: 404 });
   }
 
@@ -61,7 +85,6 @@ export async function GET(
     },
   });
 
-  // Encodage propre du nom de fichier pour Content-Disposition (RFC 5987)
   const safeAsciiName = shareLink.file.name.replace(/[^\x20-\x7E]/g, "_");
   const encodedName = encodeURIComponent(shareLink.file.name);
 
@@ -73,9 +96,5 @@ export async function GET(
   );
   headers.set("Content-Length", fileStat.size.toString());
 
-  return new NextResponse(stream, {
-    status: 200,
-    headers,
-  });
+  return new NextResponse(stream, { status: 200, headers });
 }
-
