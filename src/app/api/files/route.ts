@@ -28,16 +28,22 @@ export async function POST(request: Request) {
   }
 
   const storagePath = await saveFile(file);
+  const name = file.name.trim() || "sans-nom";
+  const mimeType = file.type || "application/octet-stream";
   try {
     const saved = await prisma.file.create({
       data: {
-        name: file.name.trim() || "sans-nom",
-        mimeType: file.type || "application/octet-stream",
+        name,
+        mimeType,
         size: file.size,
         storagePath,
         ownerId: user.id,
+        // US-G1 : l'upload initial est la version 1 du fichier.
+        versions: {
+          create: { version: 1, name, mimeType, size: file.size, storagePath, authorId: user.id },
+        },
       },
-      select: { id: true, name: true, mimeType: true, size: true, createdAt: true },
+      select: { id: true, name: true, mimeType: true, size: true, version: true, createdAt: true },
     });
     return Response.json(saved, { status: 201 });
   } catch (error) {
@@ -47,7 +53,7 @@ export async function POST(request: Request) {
   }
 }
 
-// US-B2 & US-F2 : Liste et recherche des fichiers de l'utilisateur connecté.
+// US-B2 & US-F2 : Liste et recherche des fichiers de l'utilisateur connecté avec l'état du partage (US-C1, US-C2).
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
@@ -69,6 +75,8 @@ export async function GET(request: Request) {
       mimeType: true,
       size: true,
       createdAt: true,
+      updatedAt: true,
+      version: true, // US-G1
       shareLinks: {
         select: { id: true, token: true, createdAt: true, password: true, expiresAt: true },
         take: 1,
@@ -90,4 +98,44 @@ export async function GET(request: Request) {
   }));
 
   return Response.json(sanitized);
+}
+
+// US-B4 : Suppression d'un fichier par son propriétaire.
+// Le scoping sur `ownerId` empêche un utilisateur de supprimer le fichier d'un autre.
+// Les ShareLink associés sont supprimés automatiquement (onDelete: Cascade dans le schéma).
+export async function DELETE(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return Response.json({ error: "Authentification requise." }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+  if (!id) {
+    return Response.json({ error: "Identifiant de fichier requis." }, { status: 400 });
+  }
+
+  const file = await prisma.file.findFirst({
+    where: { id, ownerId: user.id },
+    select: { id: true, storagePath: true, versions: { select: { storagePath: true } } },
+  });
+  if (!file) {
+    return Response.json({ error: "Fichier introuvable." }, { status: 404 });
+  }
+
+  // Best-effort : on supprime d'abord les blobs physiques de toutes les versions
+  // (US-G1). S'ils n'existent déjà plus sur le disque, on continue pour nettoyer
+  // la base dans tous les cas.
+  const storagePaths = new Set([file.storagePath, ...file.versions.map((v) => v.storagePath)]);
+  for (const storagePath of storagePaths) {
+    try {
+      await deleteStoredFile(storagePath);
+    } catch (err) {
+      console.error("Suppression du fichier physique échouée", err);
+    }
+  }
+
+  await prisma.file.delete({ where: { id: file.id } });
+
+  return Response.json({ ok: true });
 }

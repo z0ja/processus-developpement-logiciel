@@ -1,6 +1,6 @@
 # Service de partage de fichiers — Processus de développement logiciel
 
-Projet de TP (M1, 2026-2027) mené en **Scrum** sur 4 sprints : un service web de partage de fichiers développé from scratch (comptes, upload/download, partage par lien ou entre utilisateurs, contrôle d'accès).
+Projet de TP (M1, 2026-2027) mené en **Scrum** sur 5 sprints : un service web de partage de fichiers développé from scratch (comptes, upload/download, partage par lien ou entre utilisateurs, contrôle d'accès).
 
 - **Planification, backlog, rôles, DoR/DoD :** [PLANIFICATION.md](PLANIFICATION.md)
 - **Décisions d'architecture (ADR) :** [docs/decisions/](docs/decisions/)
@@ -40,7 +40,7 @@ npm run dev                 # http://localhost:3000
 | `POST` | `/api/auth/login` | US-A2 | Connexion (`application/json`, champs `email`, `password`). Réponses : `200` + utilisateur et cookie de session `session` (`HttpOnly`, 7 jours), `400` si champs manquants, `401` si identifiants incorrects. |
 | `POST` | `/api/auth/logout` | US-A2 | Déconnexion : supprime la session en base et le cookie. Réponse : `200` (même sans session ouverte). |
 | `POST` | `/api/files` | US-B1 / US-E2 | Upload d'un fichier (`multipart/form-data`, champ `file`, max 10 Mo, extensions/types autorisés). Réponses : `201` + métadonnées, `400` si vide/invalide, `401` si non authentifié, `413` si > 10 Mo, `415` si type non autorisé. |
-| `GET` | `/api/files` | US-B2 | Liste des fichiers de l'utilisateur connecté, état de leurs liens de partage (`hasPassword`) et nombre de destinataires (`_count.shares`). |
+| `GET` | `/api/files` | US-B2 / US-F2 | Liste et recherche (`?q=`) des fichiers de l'utilisateur connecté, état de leurs liens de partage (`hasPassword`) et nombre de destinataires (`_count.shares`). |
 | `GET` | `/api/files/[id]/download` | US-B3 / US-C2 | Téléchargement d'un fichier par son propriétaire **ou par un utilisateur avec qui il est partagé** (`401` si non connecté, `404` sinon). |
 | `POST` | `/api/files/[id]/share` | US-C1 / US-D2 | Génère ou récupère le lien de partage d'un fichier (corps JSON optionnel `{ "password" }`). |
 | `PATCH` | `/api/files/[id]/share` | US-D2 | Définit, modifie ou retire (`{ "password": null }`) le mot de passe d'un lien de partage existant. |

@@ -1,0 +1,2 @@
+# Fins de ligne LF pour tous les fichiers texte, quel que soit le poste (Windows compris)
+* text=auto eol=lf

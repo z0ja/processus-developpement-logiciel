@@ -63,6 +63,9 @@ export async function GET(
   );
   headers.set("Content-Length", fileStat.size.toString());
 
+  // US-G1 : l'éditeur de texte lit la version du contenu qu'il charge.
+  headers.set("X-File-Version", String(file.version));
+
   return new NextResponse(stream, {
     status: 200,
     headers,

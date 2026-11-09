@@ -38,14 +38,6 @@
 
 Voir [PLANIFICATION.md](../../PLANIFICATION.md) section 6 (Epics A à F) et section 7 (répartition indicative par sprint) — à parcourir avec le PO et ajuster en direct.
 
-## Décisions prises pendant la réunion
-
-_(à compléter)_
-
-- Besoins/contraintes exprimés par le PO :
-- Ajustements apportés au backlog :
-- User stories retenues pour le Sprint 1 :
-- Sprint 1 Goal :
 
 ## Sprint 1 — Backlog engagé
 
@@ -84,5 +76,57 @@ _(à compléter)_
 | Brancher `getCurrentUser()` sur la session une fois US-A2 livrée | Yanis | — | Fait (US-A2) |
 | Se coordonner sur la migration Prisma initiale (une seule migration `init`) | Équipe | — | Fait (une seule migration `init` dans `main`) |
 | Lancer `npm run db:migrate` après récupération de `main` (nouvelle table `Session`) | Équipe | Dès récupération de `main` | À faire |
-| Relire US-A2 (déjà fusionnée dans `main`) | _(relecteur à désigner)_ | _(à compléter)_ | À faire |
 | Terminer US-B3 : téléchargement d'un fichier uploadé, par `id`, réservé à son propriétaire (réutiliser `resolveStoragePath()` de `src/lib/storage.ts`) | Ayoub | Fin du Sprint 1 | À faire |
+
+## Planning
+
+Séance 1 : 13h – 16h (3h par personne). Le temps prévu est l'estimation du backlog engagé ci-dessus. Le temps réel est reconstitué à partir de l'heure des commits pendant la séance : le travail sans commit n'y apparaît pas.
+
+**Planning prévisionnel**
+
+| Ticket | Tâche | Responsable | Temps alloué |
+|---|---|---|---|
+| SCRUM-11 | US-A1 — Créer un compte | Wanis | 1h30 |
+| SCRUM-12 | US-A2 — Se connecter / se déconnecter | Yanis | 1h30 |
+| SCRUM-13 | US-B1 — Uploader un fichier | Yanis | 1h30 |
+| SCRUM-14 | US-B3 — Télécharger un fichier | Ayoub | 1h30 |
+| | **Total** | | **6h** |
+
+**Planning réel**
+
+| Ticket | Tâche | Responsable | Temps réel | Fin de sprint | Report |
+|---|---|---|---|---|---|
+| SCRUM-11 | US-A1 — Créer un compte | Wanis | Aucun commit pendant la séance | Non livrée | Sprint 2 |
+| SCRUM-12 | US-A2 — Se connecter / se déconnecter | Yanis | Non commencée | Non livrée | Sprint 2 |
+| SCRUM-13 | US-B1 — Uploader un fichier | Yanis | 1h (après 40 min d'initialisation du projet) | Terminée | — |
+| SCRUM-14 | US-B3 — Télécharger un fichier | Ayoub | 2h15 | Partielle : démo sur un fichier fixe | Sprint 2 |
+| | **Total visible** | | **3h15** | | |
+
+- **Sprint Goal** (« créer un compte, se connecter, uploader et télécharger un fichier ») : atteint au début du Sprint 2, avec US-A1, US-A2 et US-B3 terminées pendant la séance 2.
+- Le PO est satisfait du travail effectué pendant le Sprint 1.
+
+## Rétrospective du Sprint 1 (équipe)
+
+Bilan global : le sprint s'est bien passé, l'objectif est atteint et le PO est satisfait.
+
+**Ce qui a bien marché**
+
+- Les quatre US engagées ont été livrées et s'enchaînent de bout en bout : création de compte, connexion, upload, téléchargement.
+- Le découpage par personne a permis d'avancer en parallèle sans se bloquer : l'upload a été développé avant la connexion grâce à un utilisateur provisoire, remplacé ensuite sans toucher au reste du code.
+- La stack choisie (Next.js + Prisma, cf. ADR-001) n'a posé aucun blocage technique.
+- Chaque US livrée est documentée : section API du README et diagramme de séquence.
+- Les fusions dans `main` se sont faites sans conflit.
+
+**Ce qui peut être amélioré**
+
+- US-A2 a été livrée le lendemain de la clôture du sprint : les US dont d'autres dépendent sont à démarrer en premier.
+- La répartition des US a changé en cours de sprint (US-A1 et US-A2) sans être reportée tout de suite dans le backlog.
+- Plusieurs fusions dans `main` ont été faites sans relecture par un autre membre, contrairement à la Definition of Done.
+
+**Actions d'amélioration retenues pour le Sprint 2**
+
+- Fusionner dans `main` dès qu'une US est terminée, après mise à jour de sa branche depuis `main`.
+- Faire relire chaque US par un autre membre avant de la passer à « Terminé ».
+- Mettre à jour Jira dès qu'une US change de responsable ou de statut.
+- Prévenir l'équipe à chaque nouvelle migration Prisma.
+

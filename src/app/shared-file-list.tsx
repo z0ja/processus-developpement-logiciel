@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isPreviewable } from "@/lib/file-preview";
 
 type SharedFileItem = {
   id: string;
@@ -85,13 +86,26 @@ export function SharedFileList({ refreshTrigger }: { refreshTrigger?: number }) 
                 {new Date(file.sharedAt).toLocaleDateString("fr-FR")}
               </span>
             </div>
-            <a
-              href={`/api/files/${file.id}/download`}
-              download={file.name}
-              className="shrink-0 rounded-lg bg-zinc-200/80 px-2.5 py-1 text-xs font-medium text-zinc-800 transition hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
-            >
-              Télécharger
-            </a>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {isPreviewable(file.mimeType, file.name) && (
+                <a
+                  href={`/api/files/${file.id}/open`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg bg-zinc-200/80 px-2.5 py-1 text-xs font-medium text-zinc-800 transition hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
+                  title="Ouvrir dans un nouvel onglet"
+                >
+                  Ouvrir
+                </a>
+              )}
+              <a
+                href={`/api/files/${file.id}/download`}
+                download={file.name}
+                className="rounded-lg bg-zinc-200/80 px-2.5 py-1 text-xs font-medium text-zinc-800 transition hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
+              >
+                Télécharger
+              </a>
+            </div>
           </div>
         ))
       )}

@@ -49,3 +49,19 @@ next-env.d.ts
 # fichiers locaux non versionnés
 /graphify-out/
 /Sujet TP PDL.pdf
+
+# Claude Code (configuration et fichiers locaux à chaque poste)
+/.claude/
+
+# bases de données locales (le projet utilise PostgreSQL)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# éditeurs et systèmes
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db

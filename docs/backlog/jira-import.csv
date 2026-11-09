@@ -16,9 +16,21 @@ Issue id,Issue Type,Summary,Description,Epic Name,Epic Link,Priority,Labels,Spri
 15,Story,US-C2 - Partager avec un utilisateur du service,"En tant qu'utilisateur, je peux partager un fichier directement avec un autre utilisateur du service.",,3,Medium,mvp,Sprint 3
 16,Story,US-D1 - Expiration d'un lien de partage,"En tant qu'utilisateur, je peux définir une date d'expiration sur un lien de partage.",,4,Medium,mvp,Sprint 3
 17,Story,US-D2 - Protéger un lien par mot de passe,"En tant qu'utilisateur, je peux protéger un lien de partage par mot de passe.",,4,Medium,mvp,Sprint 3
-18,Story,US-D3 - Limiter le nombre de téléchargements,"En tant qu'utilisateur, je peux limiter le nombre de téléchargements autorisés sur un lien.",,4,Medium,mvp,Sprint 4
-19,Story,US-E1 - Tests automatisés,"Mise en place de tests automatisés sur les fonctionnalités critiques (upload, download, contrôle d'accès).",,5,Medium,mvp,Sprint 4
+18,Story,US-D3 - Limiter le nombre de téléchargements,"En tant qu'utilisateur, je peux limiter le nombre de téléchargements autorisés sur un lien.",,4,Medium,mvp,Sprint 3
+19,Story,US-E1 - Tests automatisés,"Mise en place de tests automatisés sur les fonctionnalités critiques (upload, download, contrôle d'accès).",,5,Medium,mvp,Sprint 5
 20,Story,US-E2 - Validation des fichiers uploadés,"Validation des fichiers uploadés (taille max, types autorisés) pour éviter les abus.",,5,Medium,mvp,Sprint 4
 21,Story,US-E3 - Quota de stockage,"Quota de stockage par utilisateur.",,5,Medium,mvp,Sprint 4
-22,Story,US-F1 - Organisation en dossiers,"En tant qu'utilisateur, je peux organiser mes fichiers en dossiers.",,6,Low,stretch,Backlog
-23,Story,US-F2 - Recherche de fichiers,"En tant qu'utilisateur, je peux rechercher un fichier par nom.",,6,Low,stretch,Backlog
+22,Story,US-F1 - Organisation en dossiers,"En tant qu'utilisateur, je peux organiser mes fichiers en dossiers.",,6,Low,stretch,Sprint 4
+23,Story,US-F2 - Recherche de fichiers,"En tant qu'utilisateur, je peux rechercher un fichier par nom.",,6,Low,stretch,Sprint 5
+24,Story,US-B5 - Ouverture de fichier,"Ouverture d'un fichier depuis le service (ticket Jira SCRUM-36).",,2,Medium,,Sprint 4
+25,Task,Rapport sprint 1,"Rédaction du rapport du sprint 1.",,,Medium,,Sprint 1
+26,Task,Rapport sprint 2,"Rédaction du rapport du sprint 2.",,,Medium,,Sprint 2
+27,Task,Rapport sprint 3,"Rédaction du rapport du sprint 3 (ticket Jira SCRUM-37).",,,Medium,,Sprint 3
+28,Task,Rapport sprint 4,"Rédaction du rapport du sprint 4 (ticket Jira SCRUM-38).",,,Medium,,Sprint 4
+29,Task,Rapport sprint 5,"Rédaction du rapport du sprint 5 (ticket Jira SCRUM-39).",,,Medium,,Sprint 5
+30,Epic,Epic G - Édition et versionnement des fichiers,"Modification des fichiers par les utilisateurs autorisés et consultation de l'historique des modifications.",Epic G - Édition et versionnement des fichiers,,,,
+31,Epic,Epic H - Gestion des droits,"Système de droits déterminant qui peut consulter ou modifier un fichier, et attribution de ces droits aux utilisateurs.",Epic H - Gestion des droits,,,,
+32,Story,US-G1 - Modifier un fichier,"En tant qu'utilisateur autorisé, je peux modifier un ou plusieurs fichiers (nouvelle version) afin de les mettre à jour.",,30,High,mvp,Sprint 4
+33,Story,US-G2 - Historique des modifications d'un fichier,"En tant qu'utilisateur, je peux consulter l'historique des modifications d'un fichier (versions successives, auteur, date) afin de suivre son évolution.",,30,Medium,mvp,Sprint 5
+34,Story,US-H1 - Système de gestion des droits sur les fichiers,"En tant que propriétaire d'un fichier, je peux définir qui peut le consulter (lecture seule) ou le modifier (lecture-écriture) afin de contrôler son édition.",,31,High,mvp,Sprint 5
+35,Story,US-H2 - Attribuer des droits aux utilisateurs,"En tant que propriétaire d'un fichier, je peux attribuer ou retirer des droits à un utilisateur donné sur ce fichier.",,31,High,mvp,Sprint 5
