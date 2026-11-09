@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import {
+  ALLOWED_EXTENSIONS,
+  MAX_FILE_SIZE_MB,
+  validateUploadedFile,
+} from "@/lib/file-validation";
 
 type UploadedFile = { id: string; name: string; size: number };
 
@@ -17,8 +22,15 @@ export function UploadForm({ onSuccess }: { onSuccess?: () => void } = {}) {
     event.preventDefault();
     const form = event.currentTarget;
     const input = form.elements.namedItem("file") as HTMLInputElement;
-    if (!input.files?.length) {
+    const selectedFile = input.files?.[0];
+    if (!selectedFile) {
       setStatus({ kind: "error", message: "Choisissez un fichier." });
+      return;
+    }
+
+    const validation = validateUploadedFile(selectedFile);
+    if (!validation.valid) {
+      setStatus({ kind: "error", message: validation.error });
       return;
     }
 
@@ -39,13 +51,17 @@ export function UploadForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <input
         type="file"
         name="file"
+        accept={ALLOWED_EXTENSIONS.join(",")}
         required
         className="block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:bg-foreground file:px-4 file:py-2 file:text-background"
       />
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        Taille max : {MAX_FILE_SIZE_MB} Mo • Formats : PDF, images, documents, texte, archives, audio/vidéo.
+      </p>
       <button
         type="submit"
         disabled={status.kind === "uploading"}

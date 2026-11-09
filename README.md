@@ -39,7 +39,7 @@ npm run dev                 # http://localhost:3000
 | `POST` | `/api/auth/register` | US-A1 | Création de compte (`application/json`, champs `email`, `password`, optionnel `confirmPassword`). Réponses : `201` + utilisateur créé, `400` si champs invalides, `409` si email déjà existant. |
 | `POST` | `/api/auth/login` | US-A2 | Connexion (`application/json`, champs `email`, `password`). Réponses : `200` + utilisateur et cookie de session `session` (`HttpOnly`, 7 jours), `400` si champs manquants, `401` si identifiants incorrects. |
 | `POST` | `/api/auth/logout` | US-A2 | Déconnexion : supprime la session en base et le cookie. Réponse : `200` (même sans session ouverte). |
-| `POST` | `/api/files` | US-B1 | Upload d'un fichier (`multipart/form-data`, champ `file`). Réponses : `201` + métadonnées du fichier, `400` si fichier absent ou vide, `401` si non authentifié. |
+| `POST` | `/api/files` | US-B1 / US-E2 | Upload d'un fichier (`multipart/form-data`, champ `file`, max 10 Mo, extensions/types autorisés). Réponses : `201` + métadonnées, `400` si vide/invalide, `401` si non authentifié, `413` si > 10 Mo, `415` si type non autorisé. |
 | `GET` | `/api/files` | US-B2 | Liste des fichiers de l'utilisateur connecté, état de leurs liens de partage (`hasPassword`) et nombre de destinataires (`_count.shares`). |
 | `GET` | `/api/files/[id]/download` | US-B3 / US-C2 | Téléchargement d'un fichier par son propriétaire **ou par un utilisateur avec qui il est partagé** (`401` si non connecté, `404` sinon). |
 | `POST` | `/api/files/[id]/share` | US-C1 / US-D2 | Génère ou récupère le lien de partage d'un fichier (corps JSON optionnel `{ "password" }`). |

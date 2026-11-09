@@ -1,9 +1,9 @@
 import { getCurrentUser } from "@/lib/current-user";
+import { validateUploadedFile } from "@/lib/file-validation";
 import { prisma } from "@/lib/prisma";
 import { deleteStoredFile, saveFile } from "@/lib/storage";
 
-// US-B1 : upload d'un fichier (multipart/form-data, champ « file »).
-// La validation taille max / types autorisés relève de US-E2.
+// US-B1 & US-E2 : upload et validation d'un fichier (multipart/form-data, champ « file »).
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
@@ -21,8 +21,10 @@ export async function POST(request: Request) {
   if (!(file instanceof File)) {
     return Response.json({ error: "Aucun fichier fourni (champ « file »)." }, { status: 400 });
   }
-  if (file.size === 0) {
-    return Response.json({ error: "Le fichier est vide." }, { status: 400 });
+
+  const validation = validateUploadedFile(file);
+  if (!validation.valid) {
+    return Response.json({ error: validation.error }, { status: validation.status });
   }
 
   const storagePath = await saveFile(file);
