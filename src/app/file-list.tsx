@@ -27,6 +27,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fichier dont la modale de partage est ouverte
   const [activeShare, setActiveShare] = useState<FileItem | null>(null);
@@ -83,67 +84,89 @@ export function FileList({ refreshTrigger }: FileListProps) {
     );
   }
 
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredFiles = normalizedQuery
+    ? files.filter((file) => file.name.toLowerCase().includes(normalizedQuery))
+    : files;
+
   return (
     <>
-      <div className="flex flex-col gap-2">
-        {files.map((file) => {
-          const latestLink = file.shareLinks?.[0];
-          const hasLink = Boolean(latestLink);
-          const isPasswordProtected = Boolean(latestLink?.hasPassword);
-          const linkExpiresAt = latestLink?.expiresAt ? new Date(latestLink.expiresAt) : null;
-          const isLinkExpired = Boolean(linkExpiresAt && linkExpiresAt < new Date());
-          const recipientCount = file._count?.shares ?? 0;
-          return (
-            <div
-              key={file.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-zinc-150 bg-zinc-50/60 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-800/40"
-            >
-              <div className="flex flex-col min-w-0">
-                <span className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                  {file.name}
-                </span>
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {formatSize(file.size)} • {new Date(file.createdAt).toLocaleDateString("fr-FR")}
-                  {hasLink &&
-                    (isLinkExpired ? (
-                      <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
-                        ⚠️ Lien expiré
-                      </span>
-                    ) : (
-                      <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                        {isPasswordProtected ? "🔒 " : ""}Lien
-                        {linkExpiresAt && ` (expire le ${linkExpiresAt.toLocaleDateString("fr-FR")})`}
-                      </span>
-                    ))}
-                  {recipientCount > 0 && (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
-                      {recipientCount} utilisateur{recipientCount > 1 ? "s" : ""}
-                    </span>
-                  )}
-                </span>
-              </div>
+      <div className="flex flex-col gap-2.5">
+        <div className="relative">
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Rechercher un fichier par nom…"
+            aria-label="Rechercher un fichier par nom"
+            className="w-full rounded-xl border border-zinc-200 bg-zinc-50/60 px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-zinc-800 dark:bg-zinc-800/40 dark:text-zinc-100"
+          />
+        </div>
 
-              <div className="flex items-center gap-1.5 shrink-0">
-                <a
-                  href={`/api/files/${file.id}/download`}
-                  download={file.name}
-                  className="rounded-lg bg-zinc-200/80 px-2.5 py-1 text-xs font-medium text-zinc-800 transition hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
-                  title="Télécharger directement"
-                >
-                  Télécharger
-                </a>
-                <button
-                  type="button"
-                  onClick={() => setActiveShare(file)}
-                  className="rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-blue-700"
-                  title="Partager avec un utilisateur ou par lien"
-                >
-                  Partager
-                </button>
+        {filteredFiles.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 p-6 text-center text-xs text-zinc-500">
+            Aucun fichier ne correspond à « {searchQuery.trim()} ».
+          </div>
+        ) : (
+          filteredFiles.map((file) => {
+            const latestLink = file.shareLinks?.[0];
+            const hasLink = Boolean(latestLink);
+            const isPasswordProtected = Boolean(latestLink?.hasPassword);
+            const linkExpiresAt = latestLink?.expiresAt ? new Date(latestLink.expiresAt) : null;
+            const isLinkExpired = Boolean(linkExpiresAt && linkExpiresAt < new Date());
+            const recipientCount = file._count?.shares ?? 0;
+            return (
+              <div
+                key={file.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-zinc-150 bg-zinc-50/60 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-800/40"
+              >
+                <div className="flex flex-col min-w-0">
+                  <span className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                    {file.name}
+                  </span>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {formatSize(file.size)} • {new Date(file.createdAt).toLocaleDateString("fr-FR")}
+                    {hasLink &&
+                      (isLinkExpired ? (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
+                          ⚠️ Lien expiré
+                        </span>
+                      ) : (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                          {isPasswordProtected ? "🔒 " : ""}Lien
+                          {linkExpiresAt && ` (expire le ${linkExpiresAt.toLocaleDateString("fr-FR")})`}
+                        </span>
+                      ))}
+                    {recipientCount > 0 && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+                        {recipientCount} utilisateur{recipientCount > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <a
+                    href={`/api/files/${file.id}/download`}
+                    download={file.name}
+                    className="rounded-lg bg-zinc-200/80 px-2.5 py-1 text-xs font-medium text-zinc-800 transition hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
+                    title="Télécharger directement"
+                  >
+                    Télécharger
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setActiveShare(file)}
+                    className="rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-blue-700"
+                    title="Partager avec un utilisateur ou par lien"
+                  >
+                    Partager
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {activeShare && (

@@ -47,15 +47,21 @@ export async function POST(request: Request) {
   }
 }
 
-// US-B2 : Liste des fichiers de l'utilisateur connecté avec l'état du partage (US-C1, US-C2).
-export async function GET() {
+// US-B2 & US-F2 : Liste et recherche des fichiers de l'utilisateur connecté.
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return Response.json({ error: "Authentification requise." }, { status: 401 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const query = searchParams.get("q")?.trim() ?? "";
+
   const files = await prisma.file.findMany({
-    where: { ownerId: user.id },
+    where: {
+      ownerId: user.id,
+      ...(query ? { name: { contains: query, mode: "insensitive" } } : {}),
+    },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

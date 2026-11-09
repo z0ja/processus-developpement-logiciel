@@ -43,6 +43,7 @@ export default function MyFilesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -139,10 +140,27 @@ export default function MyFilesPage() {
           )}
 
           {!loading && files.length > 0 && (
-            <ul className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-              {files.map((file) => {
-                const isDeleting = deleting === file.name;
-                return (
+            <>
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Rechercher un fichier par nom…"
+                aria-label="Rechercher un fichier par nom"
+                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:border-zinc-800 dark:bg-zinc-800/40 dark:text-zinc-100"
+              />
+              {files.filter((f) => f.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+                .length === 0 ? (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 py-2">
+                  Aucun fichier ne correspond à « {searchQuery.trim()} ».
+                </p>
+              ) : (
+                <ul className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+                  {files
+                    .filter((f) => f.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+                    .map((file) => {
+                      const isDeleting = deleting === file.name;
+                      return (
                   <li
                     key={file.name}
                     className="flex items-center justify-between gap-3 bg-white px-4 py-3 dark:bg-zinc-900"
@@ -182,9 +200,11 @@ export default function MyFilesPage() {
                       </button>
                     </div>
                   </li>
-                );
-              })}
-            </ul>
+                      );
+                    })}
+                </ul>
+              )}
+            </>
           )}
         </section>
 
