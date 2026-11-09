@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { ShareModal } from "./share-modal";
-import { isPreviewable } from "@/lib/file-preview";
+import { TextEditorModal } from "./text-editor-modal";
+import { isEditableText, isPreviewable } from "@/lib/file-preview";
 
 export type FileItem = {
   id: string;
@@ -10,6 +11,8 @@ export type FileItem = {
   mimeType: string;
   size: number;
   createdAt: string;
+  updatedAt?: string;
+  version?: number; // US-G1
   shareLinks?: Array<{
     id: string;
     token: string;
@@ -29,9 +32,13 @@ export function FileList({ refreshTrigger }: FileListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Fichier dont la modale de partage est ouverte
   const [activeShare, setActiveShare] = useState<FileItem | null>(null);
+  // US-G1 : fichier texte ouvert dans l'éditeur
+  const [activeEdit, setActiveEdit] = useState<FileItem | null>(null);
 
   const reloadFiles = useCallback(async () => {
     try {
@@ -90,6 +97,29 @@ export function FileList({ refreshTrigger }: FileListProps) {
     }
   }
 
+  // US-G1 : publication d'une nouvelle version d'un fichier existant.
+  async function handleNewVersion(file: FileItem, upload: File) {
+    setUpdatingId(file.id);
+    setError(null);
+    setNotice(null);
+    try {
+      const body = new FormData();
+      body.append("file", upload);
+      const res = await fetch(`/api/files/${file.id}/versions`, { method: "POST", body });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "La modification a échoué.");
+        return;
+      }
+      setNotice(`« ${data.name} » mis à jour (version ${data.version}).`);
+      await reloadFiles();
+    } catch {
+      setError("Impossible de contacter le serveur.");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   if (loading) {
     return <p className="text-xs text-zinc-500 py-4 text-center">Chargement des fichiers…</p>;
   }
@@ -112,6 +142,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
   return (
     <>
       {error && <p className="text-xs text-red-600 py-2">{error}</p>}
+      {notice && <p className="text-xs text-green-700 dark:text-green-400 py-2">{notice}</p>}
       <div className="flex flex-col gap-2">
         {files.map((file) => {
           const latestLink = file.shareLinks?.[0];
@@ -121,17 +152,27 @@ export function FileList({ refreshTrigger }: FileListProps) {
           const isLinkExpired = Boolean(linkExpiresAt && linkExpiresAt < new Date());
           const recipientCount = file._count?.shares ?? 0;
           const isDeleting = deletingId === file.id;
+          const isUpdating = updatingId === file.id;
+          const version = file.version ?? 1;
           return (
             <div
               key={file.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-zinc-150 bg-zinc-50/60 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-800/40"
+              className="flex flex-col gap-2 rounded-xl border border-zinc-150 bg-zinc-50/60 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-800/40"
             >
               <div className="flex flex-col min-w-0">
                 <span className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
                   {file.name}
                 </span>
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {formatSize(file.size)} • {new Date(file.createdAt).toLocaleDateString("fr-FR")}
+                  {formatSize(file.size)} •{" "}
+                  {version > 1 && file.updatedAt
+                    ? `modifié le ${new Date(file.updatedAt).toLocaleDateString("fr-FR")}`
+                    : new Date(file.createdAt).toLocaleDateString("fr-FR")}
+                  {version > 1 && (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                      v{version}
+                    </span>
+                  )}
                   {hasLink &&
                     (isLinkExpired ? (
                       <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
@@ -151,7 +192,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
                 </span>
               </div>
 
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {isPreviewable(file.mimeType, file.name) && (
                   <a
                     href={`/api/files/${file.id}/open`}
@@ -171,6 +212,36 @@ export function FileList({ refreshTrigger }: FileListProps) {
                 >
                   Télécharger
                 </a>
+                {isEditableText(file.mimeType, file.name, file.size) ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveEdit(file)}
+                    className="rounded-lg bg-zinc-200/80 px-2.5 py-1 text-xs font-medium text-zinc-800 transition hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
+                    title="Modifier le contenu dans l'éditeur"
+                  >
+                    Modifier
+                  </button>
+                ) : (
+                  <label
+                    className={`rounded-lg bg-zinc-200/80 px-2.5 py-1 text-xs font-medium text-zinc-800 transition hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 ${
+                      isUpdating ? "pointer-events-none opacity-50" : "cursor-pointer"
+                    }`}
+                    title="Remplacer par une nouvelle version (upload)"
+                  >
+                    {isUpdating ? "Envoi…" : "Remplacer"}
+                    <input
+                      type="file"
+                      className="sr-only"
+                      disabled={isUpdating}
+                      aria-label={`Nouvelle version de ${file.name}`}
+                      onChange={(event) => {
+                        const upload = event.target.files?.[0];
+                        event.target.value = "";
+                        if (upload) handleNewVersion(file, upload);
+                      }}
+                    />
+                  </label>
+                )}
                 <button
                   type="button"
                   onClick={() => setActiveShare(file)}
@@ -208,6 +279,17 @@ export function FileList({ refreshTrigger }: FileListProps) {
           initialExpiresAt={activeShare.shareLinks?.[0]?.expiresAt ?? null}
           onClose={() => setActiveShare(null)}
           onChanged={reloadFiles}
+        />
+      )}
+
+      {activeEdit && (
+        <TextEditorModal
+          fileId={activeEdit.id}
+          fileName={activeEdit.name}
+          mimeType={activeEdit.mimeType}
+          version={activeEdit.version ?? 1}
+          onClose={() => setActiveEdit(null)}
+          onSaved={reloadFiles}
         />
       )}
     </>

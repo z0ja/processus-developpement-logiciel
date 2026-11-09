@@ -124,6 +124,17 @@ export function inlineContentType(mimeType: string, fileName = ""): string | nul
   return null;
 }
 
+/** Taille maximale d'un fichier modifiable dans l'éditeur de texte (US-G1). */
+export const MAX_EDITABLE_SIZE = 1024 * 1024; // 1 Mo
+
+/**
+ * US-G1 : le fichier peut-il être modifié dans l'éditeur de texte intégré ?
+ * Mêmes types que ceux affichés en texte brut à l'ouverture, dans la limite de taille.
+ */
+export function isEditableText(mimeType: string, fileName: string, size: number): boolean {
+  return size <= MAX_EDITABLE_SIZE && inlineContentType(mimeType, fileName) === TEXT_PLAIN;
+}
+
 /** Indique si le fichier peut être ouvert directement dans le navigateur. */
 export function isPreviewable(mimeType: string, fileName = ""): boolean {
   return inlineContentType(mimeType, fileName) !== null;
