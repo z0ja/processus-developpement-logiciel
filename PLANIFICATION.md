@@ -4,7 +4,7 @@
 **Sujet retenu :** 3. Service de partage de fichiers
 **Framework :** Scrum
 **Équipe :** 4 personnes — **Product Owner : l'enseignant**
-**Calendrier :** 5 séances de TP = **4 sprints** + **1 séance d'évaluation finale**
+**Calendrier :** 6 séances de TP = **5 sprints** + **1 séance d'évaluation finale**
 
 > Ce document est à ajuster en équipe. Tout ce qui touche au contenu fonctionnel (backlog, priorités) doit être validé/amendé par le PO (l'enseignant) lors des réunions de sprint — il peut changer d'avis ou ajouter des contraintes, c'est prévu par le processus.
 
@@ -17,17 +17,18 @@
 
 ---
 
-## 2. Adaptation du processus Scrum aux 5 séances
+## 2. Adaptation du processus Scrum aux 6 séances
 
-Chaque séance = un point de rencontre avec le PO. Comme il y a 4 sprints pour 5 séances, la dernière séance est dédiée à la démo finale + rétrospective globale plutôt qu'à une nouvelle planification.
+Chaque séance = un point de rencontre avec le PO. Comme il y a 5 sprints pour 6 séances, la dernière séance est dédiée à la démo finale + rétrospective globale plutôt qu'à une nouvelle planification.
 
 | Séance | Sprint | Contenu de la réunion avec le PO | Focus du sprint |
 |---|---|---|---|
 | 1 | Sprint 1 (lancement) | Recueil du besoin initial, présentation du backlog proposé, validation du périmètre | Cadrage technique + socle fonctionnel minimal (walking skeleton) |
 | 2 | Sprint 2 | Revue/démo Sprint 1 + rétro équipe + planning Sprint 2 | Gestion des fichiers (liste, suppression) + partage simple |
 | 3 | Sprint 3 | Revue/démo Sprint 2 + rétro équipe + planning Sprint 3 | Contrôle d'accès sur le partage (expiration, permissions) |
-| 4 | Sprint 4 | Revue/démo Sprint 3 + rétro équipe + planning Sprint 4 | Robustesse, sécurité, quotas, finitions |
-| 5 | — (clôture) | **Démo finale** (résultat Sprint 4) + **rétrospective globale** + perspectives | Corrections mineures uniquement, préparation de la présentation |
+| 4 | Sprint 4 | Revue/démo Sprint 3 + rétro équipe + planning Sprint 4 | Robustesse, quotas, dossiers, ouverture et modification de fichiers |
+| 5 | Sprint 5 | Revue/démo Sprint 4 + rétro équipe + planning Sprint 5 | Gestion des droits, historique des versions, tests + finitions |
+| 6 | — (clôture) | **Démo finale** (résultat Sprint 5) + **rétrospective globale** + perspectives | Corrections mineures uniquement, préparation de la présentation |
 
 ### Cérémonies à tenir à chaque sprint
 - **Sprint Review** (avec le PO, en séance) : démo de l'incrément, recueil de feedback.
@@ -84,6 +85,7 @@ Ce backlog est une **base de discussion** pour la première réunion — le PO p
 - US-B2 : En tant qu'utilisateur, je peux voir la liste de mes fichiers.
 - US-B3 : En tant qu'utilisateur, je peux télécharger un de mes fichiers.
 - US-B4 : En tant qu'utilisateur, je peux supprimer un de mes fichiers.
+- US-B5 : Ouverture de fichier (SCRUM-36, Sprint 4).
 
 ### Epic C — Partage
 - US-C1 : En tant qu'utilisateur, je peux générer un lien de partage pour un fichier.
@@ -104,16 +106,25 @@ Ce backlog est une **base de discussion** pour la première réunion — le PO p
 - US-F1 : Organisation en dossiers.
 - US-F2 : Recherche de fichiers par nom.
 
+### Epic G — Édition et versionnement des fichiers
+- US-G1 : En tant qu'utilisateur autorisé, je peux modifier un ou plusieurs fichiers (nouvelle version) afin de les mettre à jour.
+- US-G2 : En tant qu'utilisateur, je peux consulter l'historique des modifications d'un fichier (versions successives, auteur, date) afin de suivre son évolution.
+
+### Epic H — Gestion des droits
+- US-H1 : En tant que propriétaire d'un fichier, je peux définir qui peut le consulter (lecture seule) ou le modifier (lecture-écriture) afin de contrôler son édition.
+- US-H2 : En tant que propriétaire d'un fichier, je peux attribuer ou retirer des droits à un utilisateur donné sur ce fichier.
+
 ---
 
 ## 7. Répartition indicative par sprint
 
 | Sprint | User stories visées | Objectif de sprint (sprint goal) |
 |---|---|---|
-| Sprint 1 | Setup projet + ADR stack + US-A1, US-A2, US-B1, US-B3 | Un utilisateur peut créer un compte, se connecter, uploader et télécharger un fichier (bout en bout, même minimal) |
-| Sprint 2 | US-B2, US-B4, US-C1, US-C3 | Un utilisateur gère ses fichiers et peut les partager via un lien simple |
-| Sprint 3 | US-C2, US-D1, US-D2 | Le partage devient contrôlé : expiration, mot de passe, partage ciblé |
-| Sprint 4 | US-D3, US-E1, US-E2, US-E3 + corrections | Durcissement du service (quotas, validation, tests) + préparation démo finale |
+| Sprint 1 | Setup projet + ADR stack + US-A1, US-A2, US-B1, US-B3 + Rapport sprint 1 | Un utilisateur peut créer un compte, se connecter, uploader et télécharger un fichier (bout en bout, même minimal) |
+| Sprint 2 | US-B2, US-B4, US-C1, US-C3 + Rapport sprint 2 | Un utilisateur gère ses fichiers et peut les partager via un lien simple |
+| Sprint 3 | US-C2, US-D1, US-D2, US-D3 + Rapport sprint 3 (SCRUM-37) | Le partage devient contrôlé : expiration, mot de passe, limite de téléchargements, partage ciblé |
+| Sprint 4 | US-B5, US-E2, US-E3, US-F1, US-G1 + corrections + Rapport sprint 4 (SCRUM-38) | Durcissement du service (quotas, validation), dossiers, ouverture et modification de fichiers |
+| Sprint 5 | US-E1, US-F2, US-G2, US-H1, US-H2 + corrections + Rapport sprint 5 (SCRUM-39) | Gestion des droits, historique des versions, recherche, tests + préparation démo finale (à valider avec le PO) |
 
 *À ajuster selon la vélocité réelle observée après le Sprint 1 — ne pas hésiter à redescendre le scope plutôt que sacrifier la qualité du process.*
 
@@ -150,12 +161,12 @@ Ce backlog est une **base de discussion** pour la première réunion — le PO p
 
 ## 10. Livrables attendus par séance
 
-- **Après chaque sprint (séances 1 à 4)** :
+- **Après chaque sprint (séances 1 à 5)** :
   - Incrément fonctionnel démontré au PO.
   - CR de la réunion (décisions du PO, nouvelles demandes/contraintes).
   - Backlog à jour (statuts, nouvelles US, réestimations).
   - Notes de rétrospective (actions d'amélioration retenues).
-- **Séance finale (5)** :
+- **Séance finale (6)** :
   - Démo complète du produit.
   - Support de présentation + rétrospective globale du projet (difficultés, leçons apprises, perspectives).
   - Rendu complet : code, modélisations (diagrammes de cas d'usage/séquence/architecture selon pertinence), documentation, rapports de tests, historique complet du backlog et des CR.
