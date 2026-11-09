@@ -49,7 +49,7 @@ model File {
   ownerId String
 
   shareLinks ShareLink[]
-  shares     FileShare[]
+  fileShares FileShare[]
 
   @@index([ownerId])
 }
@@ -61,6 +61,11 @@ model ShareLink {
   createdAt DateTime  @default(now())
   expiresAt DateTime?
   password  String?
+
+  // US-D3 : limite de téléchargements.
+  // `maxDownloads = null` signifie « illimité » (rétro-compatible avec les liens existants).
+  maxDownloads  Int?
+  downloadCount Int  @default(0)
 
   file   File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
   fileId String

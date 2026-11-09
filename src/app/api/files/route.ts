@@ -46,6 +46,7 @@ export async function POST(request: Request) {
 }
 
 // US-B2 : Liste des fichiers de l'utilisateur connecté avec l'état du partage (US-C1, US-C2).
+// US-B2 : Liste des fichiers de l'utilisateur connecté avec l'état du partage (US-C1, US-C2).
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
@@ -62,28 +63,39 @@ export async function GET() {
       size: true,
       createdAt: true,
       shareLinks: {
-        select: { id: true, token: true, createdAt: true, password: true, expiresAt: true },
+        select: {
+          id: true,
+          token: true,
+          createdAt: true,
+          password: true,
+          expiresAt: true,
+          maxDownloads: true,   // ← US-D3
+          downloadCount: true,  // ← US-D3
+        },
         take: 1,
         orderBy: { createdAt: "desc" },
       },
-      _count: { select: { shares: true } }, // US-C2 : nombre d'utilisateurs destinataires
+      _count: { select: { fileShares: true } }, // ← corrigé : `shares` → `fileShares`
     },
   });
 
   const sanitized = files.map((f) => ({
     ...f,
-    shareLinks: f.shareLinks.map(({ id, token, createdAt, password, expiresAt }) => ({
-      id,
-      token,
-      createdAt,
-      expiresAt,
-      hasPassword: Boolean(password),
-    })),
+    shareLinks: f.shareLinks.map(
+      ({ id, token, createdAt, password, expiresAt, maxDownloads, downloadCount }) => ({
+        id,
+        token,
+        createdAt,
+        expiresAt,
+        hasPassword: Boolean(password),
+        maxDownloads,
+        downloadCount,
+      })
+    ),
   }));
 
   return Response.json(sanitized);
 }
-
 // US-B4 : Suppression d'un fichier par son propriétaire.
 // Le scoping sur `ownerId` empêche un utilisateur de supprimer le fichier d'un autre.
 // Les ShareLink associés sont supprimés automatiquement (onDelete: Cascade dans le schéma).

@@ -15,8 +15,10 @@ export type FileItem = {
     createdAt: string;
     expiresAt?: string | null;
     hasPassword?: boolean;
+    maxDownloads?: number | null;
+    downloadCount?: number;
   }>;
-  _count?: { shares: number };
+  _count?: { fileShares: number };
 };
 
 type FileListProps = {
@@ -68,6 +70,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
     };
   }, [refreshTrigger]);
 
+  // US-B4 : suppression d'un fichier par son propriétaire.
   async function handleDelete(file: FileItem) {
     if (!window.confirm(`Supprimer définitivement « ${file.name} » ?`)) return;
     setDeletingId(file.id);
@@ -93,9 +96,6 @@ export function FileList({ refreshTrigger }: FileListProps) {
     return <p className="text-xs text-zinc-500 py-4 text-center">Chargement des fichiers…</p>;
   }
 
-  // On remplace tout l'écran uniquement si l'erreur empêche d'afficher une liste.
-  // Si des fichiers existent, l'erreur est affichée au-dessus de la liste plus bas
-  // (sinon un échec de suppression ferait disparaître la liste entière).
   if (error && files.length === 0) {
     return <p className="text-xs text-red-600 py-2">{error}</p>;
   }
@@ -118,8 +118,15 @@ export function FileList({ refreshTrigger }: FileListProps) {
           const isPasswordProtected = Boolean(latestLink?.hasPassword);
           const linkExpiresAt = latestLink?.expiresAt ? new Date(latestLink.expiresAt) : null;
           const isLinkExpired = Boolean(linkExpiresAt && linkExpiresAt < new Date());
-          const recipientCount = file._count?.shares ?? 0;
+
+          const maxDownloads = latestLink?.maxDownloads ?? null;
+          const downloadCount = latestLink?.downloadCount ?? 0;
+          const isLinkExhausted =
+            maxDownloads !== null && downloadCount >= maxDownloads;
+
+          const recipientCount = file._count?.fileShares ?? 0;
           const isDeleting = deletingId === file.id;
+
           return (
             <div
               key={file.id}
@@ -136,10 +143,16 @@ export function FileList({ refreshTrigger }: FileListProps) {
                       <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
                         ⚠️ Lien expiré
                       </span>
+                    ) : isLinkExhausted ? (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700 dark:bg-orange-950 dark:text-orange-300">
+                        ⛔ Quota épuisé
+                      </span>
                     ) : (
                       <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
                         {isPasswordProtected ? "🔒 " : ""}Lien
                         {linkExpiresAt && ` (expire le ${linkExpiresAt.toLocaleDateString("fr-FR")})`}
+                        {maxDownloads !== null &&
+                          ` · ${downloadCount}/${maxDownloads} téléch.`}
                       </span>
                     ))}
                   {recipientCount > 0 && (
@@ -167,6 +180,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
                 >
                   Partager
                 </button>
+                {/* US-B4 : bouton poubelle */}
                 <button
                   type="button"
                   onClick={() => handleDelete(file)}
@@ -194,6 +208,8 @@ export function FileList({ refreshTrigger }: FileListProps) {
           }
           initialHasPassword={Boolean(activeShare.shareLinks?.[0]?.hasPassword)}
           initialExpiresAt={activeShare.shareLinks?.[0]?.expiresAt ?? null}
+          initialMaxDownloads={activeShare.shareLinks?.[0]?.maxDownloads ?? null}
+          initialDownloadCount={activeShare.shareLinks?.[0]?.downloadCount ?? 0}
           onClose={() => setActiveShare(null)}
           onChanged={reloadFiles}
         />
