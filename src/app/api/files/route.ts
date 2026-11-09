@@ -83,3 +83,39 @@ export async function GET() {
 
   return Response.json(sanitized);
 }
+
+// US-B4 : Suppression d'un fichier par son propriétaire.
+// Le scoping sur `ownerId` empêche un utilisateur de supprimer le fichier d'un autre.
+// Les ShareLink associés sont supprimés automatiquement (onDelete: Cascade dans le schéma).
+export async function DELETE(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return Response.json({ error: "Authentification requise." }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+  if (!id) {
+    return Response.json({ error: "Identifiant de fichier requis." }, { status: 400 });
+  }
+
+  const file = await prisma.file.findFirst({
+    where: { id, ownerId: user.id },
+    select: { id: true, storagePath: true },
+  });
+  if (!file) {
+    return Response.json({ error: "Fichier introuvable." }, { status: 404 });
+  }
+
+  // Best-effort : on supprime d'abord le blob physique. S'il n'existe déjà
+  // plus sur le disque, on continue pour nettoyer la base dans tous les cas.
+  try {
+    await deleteStoredFile(file.storagePath);
+  } catch (err) {
+    console.error("Suppression du fichier physique échouée", err);
+  }
+
+  await prisma.file.delete({ where: { id: file.id } });
+
+  return Response.json({ ok: true });
+}

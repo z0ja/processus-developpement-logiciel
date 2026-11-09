@@ -27,6 +27,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Fichier dont la modale de partage est ouverte
   const [activeShare, setActiveShare] = useState<FileItem | null>(null);
@@ -67,11 +68,35 @@ export function FileList({ refreshTrigger }: FileListProps) {
     };
   }, [refreshTrigger]);
 
+  async function handleDelete(file: FileItem) {
+    if (!window.confirm(`Supprimer définitivement « ${file.name} » ?`)) return;
+    setDeletingId(file.id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/files?id=${encodeURIComponent(file.id)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "La suppression a échoué.");
+        return;
+      }
+      setFiles((prev) => prev.filter((f) => f.id !== file.id));
+    } catch {
+      setError("Impossible de contacter le serveur.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   if (loading) {
     return <p className="text-xs text-zinc-500 py-4 text-center">Chargement des fichiers…</p>;
   }
 
-  if (error) {
+  // On remplace tout l'écran uniquement si l'erreur empêche d'afficher une liste.
+  // Si des fichiers existent, l'erreur est affichée au-dessus de la liste plus bas
+  // (sinon un échec de suppression ferait disparaître la liste entière).
+  if (error && files.length === 0) {
     return <p className="text-xs text-red-600 py-2">{error}</p>;
   }
 
@@ -85,6 +110,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
 
   return (
     <>
+      {error && <p className="text-xs text-red-600 py-2">{error}</p>}
       <div className="flex flex-col gap-2">
         {files.map((file) => {
           const latestLink = file.shareLinks?.[0];
@@ -93,6 +119,7 @@ export function FileList({ refreshTrigger }: FileListProps) {
           const linkExpiresAt = latestLink?.expiresAt ? new Date(latestLink.expiresAt) : null;
           const isLinkExpired = Boolean(linkExpiresAt && linkExpiresAt < new Date());
           const recipientCount = file._count?.shares ?? 0;
+          const isDeleting = deletingId === file.id;
           return (
             <div
               key={file.id}
@@ -140,6 +167,16 @@ export function FileList({ refreshTrigger }: FileListProps) {
                 >
                   Partager
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(file)}
+                  disabled={isDeleting}
+                  aria-label={`Supprimer ${file.name}`}
+                  title={`Supprimer ${file.name}`}
+                  className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white p-1.5 text-zinc-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-red-800 dark:hover:bg-red-950 dark:hover:text-red-400"
+                >
+                  <TrashIcon />
+                </button>
               </div>
             </div>
           );
@@ -169,4 +206,26 @@ function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} o`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
+function TrashIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </svg>
+  );
 }
