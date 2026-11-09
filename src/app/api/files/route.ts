@@ -26,16 +26,22 @@ export async function POST(request: Request) {
   }
 
   const storagePath = await saveFile(file);
+  const name = file.name.trim() || "sans-nom";
+  const mimeType = file.type || "application/octet-stream";
   try {
     const saved = await prisma.file.create({
       data: {
-        name: file.name.trim() || "sans-nom",
-        mimeType: file.type || "application/octet-stream",
+        name,
+        mimeType,
         size: file.size,
         storagePath,
         ownerId: user.id,
+        // US-G1 : l'upload initial est la version 1 du fichier.
+        versions: {
+          create: { version: 1, name, mimeType, size: file.size, storagePath, authorId: user.id },
+        },
       },
-      select: { id: true, name: true, mimeType: true, size: true, createdAt: true },
+      select: { id: true, name: true, mimeType: true, size: true, version: true, createdAt: true },
     });
     return Response.json(saved, { status: 201 });
   } catch (error) {
@@ -61,6 +67,8 @@ export async function GET() {
       mimeType: true,
       size: true,
       createdAt: true,
+      updatedAt: true,
+      version: true, // US-G1
       shareLinks: {
         select: { id: true, token: true, createdAt: true, password: true, expiresAt: true },
         take: 1,
@@ -101,18 +109,22 @@ export async function DELETE(request: Request) {
 
   const file = await prisma.file.findFirst({
     where: { id, ownerId: user.id },
-    select: { id: true, storagePath: true },
+    select: { id: true, storagePath: true, versions: { select: { storagePath: true } } },
   });
   if (!file) {
     return Response.json({ error: "Fichier introuvable." }, { status: 404 });
   }
 
-  // Best-effort : on supprime d'abord le blob physique. S'il n'existe déjà
-  // plus sur le disque, on continue pour nettoyer la base dans tous les cas.
-  try {
-    await deleteStoredFile(file.storagePath);
-  } catch (err) {
-    console.error("Suppression du fichier physique échouée", err);
+  // Best-effort : on supprime d'abord les blobs physiques de toutes les versions
+  // (US-G1). S'ils n'existent déjà plus sur le disque, on continue pour nettoyer
+  // la base dans tous les cas.
+  const storagePaths = new Set([file.storagePath, ...file.versions.map((v) => v.storagePath)]);
+  for (const storagePath of storagePaths) {
+    try {
+      await deleteStoredFile(storagePath);
+    } catch (err) {
+      console.error("Suppression du fichier physique échouée", err);
+    }
   }
 
   await prisma.file.delete({ where: { id: file.id } });

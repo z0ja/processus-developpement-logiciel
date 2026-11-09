@@ -20,6 +20,7 @@ model User {
   files        File[]
   sessions     Session[]
   sharedWithMe FileShare[]
+  fileVersions FileVersion[]
 }
 
 // US-A2 — Sessions de connexion. Seule l'empreinte SHA-256 du jeton est stockée :
@@ -37,6 +38,8 @@ model Session {
 }
 
 // Epic B — Gestion des fichiers
+// Les champs name / mimeType / size / storagePath décrivent toujours la version
+// courante (US-G1) : téléchargement, ouverture et partage n'ont pas à connaître les versions.
 model File {
   id          String   @id @default(cuid())
   name        String
@@ -44,14 +47,39 @@ model File {
   size        Int
   storagePath String   @unique
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  version     Int      @default(1)
 
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId String
 
   shareLinks ShareLink[]
   shares     FileShare[]
+  versions   FileVersion[]
 
   @@index([ownerId])
+}
+
+// US-G1 — Versions successives d'un fichier (la version courante incluse).
+// Chaque version garde son propre contenu sur disque, pour l'historique (US-G2).
+model FileVersion {
+  id          String   @id @default(cuid())
+  version     Int
+  name        String
+  mimeType    String
+  size        Int
+  storagePath String   @unique
+  createdAt   DateTime @default(now())
+
+  file   File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  fileId String
+
+  // Auteur de la version ; conservé à null si son compte est supprimé.
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId String?
+
+  @@unique([fileId, version])
+  @@index([authorId])
 }
 
 // Epic C — Partage de fichiers

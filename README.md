@@ -1,6 +1,6 @@
 # Service de partage de fichiers — Processus de développement logiciel
 
-Projet de TP (M1, 2026-2027) mené en **Scrum** sur 4 sprints : un service web de partage de fichiers développé from scratch (comptes, upload/download, partage par lien ou entre utilisateurs, contrôle d'accès).
+Projet de TP (M1, 2026-2027) mené en **Scrum** sur 5 sprints : un service web de partage de fichiers développé from scratch (comptes, upload/download, partage par lien ou entre utilisateurs, contrôle d'accès).
 
 - **Planification, backlog, rôles, DoR/DoD :** [PLANIFICATION.md](PLANIFICATION.md)
 - **Décisions d'architecture (ADR) :** [docs/decisions/](docs/decisions/)

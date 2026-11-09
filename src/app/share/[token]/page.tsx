@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { isShareLinkUnlocked } from "@/lib/share-auth";
+import { isPreviewable } from "@/lib/file-preview";
 import { SharePasswordForm } from "./password-form";
 
 // US-C3 : Page publique de consultation et de téléchargement d'un fichier partagé.
@@ -136,6 +137,19 @@ export default async function SharedFilePage({
           <span>Télécharger le fichier</span>
           <span>↓</span>
         </a>
+
+        {/* US-B5 : ouverture dans le navigateur, uniquement pour les types sûrs */}
+        {isPreviewable(file.mimeType, file.name) && (
+          <a
+            href={`/api/share/${shareLink.token}/open`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="-mt-2 w-full flex items-center justify-center gap-2 px-5 py-3 border border-zinc-200 text-zinc-800 font-medium rounded-xl hover:bg-zinc-50 transition dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            <span>Ouvrir dans le navigateur</span>
+            <span>↗</span>
+          </a>
+        )}
 
         <div className="border-t border-zinc-100 dark:border-zinc-800 w-full pt-4 text-xs text-zinc-400">
           Partagé via le Service de partage de fichiers
