@@ -1,101 +1,96 @@
-# Séance 2 — Revue du Sprint 1 et présentation du Sprint 2 au PO
+# Sprint 2 — Compte rendu
 
-- **Date :** 13/10/2026
-- **Présents :** Yanis LAFTIMI, Wanis GUERRAM, Evan HONORAT, Ayoub ACHOUCKI (4 membres de l'équipe) + PO
 - **Scrum Master :** Yanis LAFTIMI
-- **Sprint 2 :** du 13/10/2026 au 20/10/2026
+- **Sprint Goal** (cf. [PLANIFICATION.md](../../PLANIFICATION.md) §7) : un utilisateur gère ses fichiers et peut les partager via un lien simple.
 
-## Objectifs de la réunion
+## Ouverture du sprint (séance 2 avec le PO)
 
-- Présenter au PO ce qui a été livré pendant le Sprint 1.
-- Présenter les tâches retenues pour le Sprint 2 et les faire valider.
-- Recueillir les retours du PO et ses nouvelles demandes.
+- **Présents :** Yanis LAFTIMI, Wanis GUERRAM, Evan HONORAT, Ayoub ACHOUCKI (4 membres de l'équipe) + PO
+- **Revue du Sprint 1 :** US-B1 livrée ; US-A1, US-A2 et US-B3 reportées au Sprint 2. Détail et rétrospective : voir [sprint-1.md](sprint-1.md).
+- **Retours du PO :** satisfait du Sprint 1, aucune remarque sur les tâches du Sprint 2, aucune nouvelle demande ni contrainte.
+- **Décisions :** Sprint Goal et contenu du Sprint 2 validés tels que présentés, sans ajustement du backlog.
 
-## Bilan du Sprint 1 (du 05/10 au 12/10/2026)
+## Planning prévisionnel
 
-| US | Responsable | Résultat |
-|---|---|---|
-| US-A1 — Créer un compte | Wanis | Livrée |
-| US-B1 — Uploader un fichier | Yanis | Livrée |
-| US-B3 — Télécharger un fichier | Ayoub | Livrée : téléchargement d'un fichier uploadé, réservé à son propriétaire (`GET /api/files/[id]/download`) |
-| US-A2 — Se connecter / se déconnecter | Yanis | Non terminée à la clôture du sprint, reportée au Sprint 2 (livrée le 13/10) |
+Séance 2 : 8h30 – 11h30 (3h par personne). Les tâches non terminées au Sprint 1 sont reportées avec leur estimation d'origine.
 
-- **Sprint Goal du Sprint 1** (« créer un compte, se connecter, uploader et télécharger un fichier ») : atteint le 13/10, avec un jour de retard sur la connexion.
-- Détail du sprint : voir [sprint-1.md](sprint-1.md).
+| Ticket | Tâche | Responsable | Temps alloué |
+|---|---|---|---|
+| SCRUM-11 | US-A1 — Créer un compte (reportée du Sprint 1) | Wanis | 1h30 |
+| SCRUM-12 | US-A2 — Se connecter / se déconnecter (reportée du Sprint 1) | Yanis | 2h |
+| SCRUM-14 | US-B3 — Télécharger un fichier (reportée du Sprint 1) | Ayoub | 1h30 |
+| SCRUM-15 | US-B2 — Voir la liste de mes fichiers | Evan | 2h |
+| SCRUM-16 | US-B4 — Supprimer un fichier | Evan | 2h |
+| SCRUM-17 | US-C1 — Générer un lien de partage | Ayoub | 2h |
+| SCRUM-18 | US-C3 — Accéder à un fichier partagé | Wanis | 2h |
+| SCRUM-35 | Déploiement sur le serveur pedago (application + base commune) | Yanis | 2h |
+| | **Total** | | **15h** |
 
-## Sprint 2 — Tâches présentées au PO
-
-**Sprint Goal** (cf. [PLANIFICATION.md](../../PLANIFICATION.md) §7) : un utilisateur gère ses fichiers et peut les partager via un lien simple.
-
-| Ticket | Tâche | Responsable | Estimation | Statut au 13/10 |
-|---|---|---|---|---|
-| SCRUM-12 | US-A2 — Se connecter / se déconnecter (reportée du Sprint 1) | Yanis | 2h | Terminé |
-| SCRUM-15 | US-B2 — Voir la liste de mes fichiers | Evan | 2h | Terminé |
-| SCRUM-16 | US-B4 — Supprimer un fichier | Evan | 2h | En cours |
-| SCRUM-17 | US-C1 — Générer un lien de partage | Ayoub | 2h | Terminé |
-| SCRUM-18 | US-C3 — Accéder à un fichier partagé | Wanis | 2h | En cours |
-| SCRUM-35 | Déploiement sur le serveur pedago (application + base commune) | Yanis | 2h | En cours |
-
-### Avancement technique au jour de la réunion
+## Déroulement du sprint
 
 - **Authentification :** connexion et déconnexion par session (cookie `HttpOnly`, sessions en base). L'upload, le téléchargement et le partage exigent d'être connecté.
-- **Partage :** génération d'un lien de partage pour un fichier et page publique d'accès par lien (`/share/[token]`).
-- **Liste des fichiers :** l'accueil affiche les fichiers de l'utilisateur connecté (avec téléchargement et partage) ; une page `/myfiles` existe en parallèle.
-- **Déploiement :** l'application tourne sur le serveur de l'université (`pedago.univ-avignon.fr`), avec la base PostgreSQL du serveur (schéma dédié). Accès par tunnel SSH pour l'instant.
+- **Liste des fichiers :** l'accueil affiche les fichiers de l'utilisateur connecté, avec téléchargement et partage. Une page `/myfiles` existe en parallèle.
+- **Partage :** génération d'un lien de partage pour un fichier et page publique d'accès par lien (`/share/[token]`), avec téléchargement du fichier partagé.
+- **Déploiement :** l'application tourne sur le serveur de l'université (`pedago.univ-avignon.fr`), avec la base PostgreSQL du serveur (schéma dédié). Accès par tunnel SSH, testé avec succès par les 4 membres.
 - **Documentation :** diagrammes de séquence pour US-A1, US-A2, US-B1 et US-C1 dans [docs/modelisation/](../modelisation/).
 
-## Retours du PO
+## Planning réel
 
-- Le PO est satisfait du travail effectué pendant le Sprint 1.
-- Aucune remarque sur les tâches présentées pour le Sprint 2.
-- Aucune nouvelle demande ni nouvelle contrainte.
+Temps reconstitué à partir de l'heure des commits pendant la séance : le travail sans commit n'y apparaît pas. Aucun commit n'a été fait entre la séance 2 et la séance 3.
 
-## Décisions prises pendant la réunion
+| Ticket | Tâche | Responsable | Temps réel | Fin de sprint | Report |
+|---|---|---|---|---|---|
+| SCRUM-11 | US-A1 — Créer un compte | Wanis | 0h30 | Terminée | — |
+| SCRUM-12 | US-A2 — Se connecter / se déconnecter | Yanis | 0h45 | Terminée | — |
+| SCRUM-35 | Déploiement sur le serveur pedago | Yanis | 1h15 | Terminé | — |
+| SCRUM-14, 17, 18 | US-B3 (fin), US-C1 et page d'accès par lien de US-C3 (un seul commit) | Ayoub | 1h15 | Terminées | — |
+| SCRUM-15 | US-B2 — Voir la liste de mes fichiers | Evan | 1h30 | Terminée | — |
+| SCRUM-16 | US-B4 — Supprimer un fichier | Evan | Aucun commit | Non commencée | Sprint 3 |
+| | **Total visible** | | **5h15** | | |
 
-- **Sprint 2 Goal validé :** un utilisateur gère ses fichiers et peut les partager via un lien simple.
-- Le contenu du Sprint 2 est validé tel que présenté, sans ajustement du backlog.
+**Bilan :** Sprint Goal atteint pour le partage par lien ; la suppression d'un fichier (US-B4) est reportée au Sprint 3.
 
 ## Points d'attention de l'équipe
 
-- **Accès à l'application déployée :** elle est accessible par tunnel SSH, testé avec succès par les 4 membres de l'équipe. Elle n'est pas exposée par une URL directe.
+- **Accès à l'application déployée :** uniquement par tunnel SSH, pas d'URL directe.
 - **Liste des fichiers (US-B2) :** deux listes coexistent. Celle de l'accueil affiche bien les fichiers de l'utilisateur connecté. La page `/myfiles` liste le contenu du dossier `partage/` du projet (fichiers de test), sans connexion requise. À unifier.
 - **Relectures :** plusieurs fusions dans `main` ont été faites sans pull request relue, contrairement à la Definition of Done.
 - **Migrations :** après récupération de `main`, chacun doit lancer `npm run db:migrate` (nouvelles tables `Session` et `ShareLink`).
 
 ## Actions et responsables
 
-| Action | Responsable | Échéance | Statut |
-|---|---|---|---|
-| Terminer US-B4 (suppression d'un fichier) | Evan | 20/10/2026 | En cours |
-| Terminer US-C3 (accès à un fichier partagé) | Wanis | 20/10/2026 | En cours |
-| Unifier les deux listes de fichiers (accueil et `/myfiles`) sur les fichiers de l'utilisateur connecté | Evan + Ayoub | 20/10/2026 | À faire |
-| Faire tester l'accès par tunnel SSH à toute l'équipe | Yanis | 13/10/2026 | Fait (fonctionne pour les 4 membres) |
-| Mettre à jour le serveur depuis `main` avant la prochaine revue | Yanis | 20/10/2026 | À faire |
+| Action | Responsable | Statut en fin de sprint |
+|---|---|---|
+| Terminer US-B4 (suppression d'un fichier) | Evan | Non fait, reporté au Sprint 3 |
+| Terminer US-C3 (accès à un fichier partagé) | Wanis | Fait pendant la séance 2 (commit d'Ayoub), retouché au Sprint 3 |
+| Unifier les deux listes de fichiers (accueil et `/myfiles`) sur les fichiers de l'utilisateur connecté | Evan + Ayoub | Non fait, reporté au Sprint 3 |
+| Faire tester l'accès par tunnel SSH à toute l'équipe | Yanis | Fait (fonctionne pour les 4 membres) |
+| Mettre à jour le serveur depuis `main` avant la prochaine revue | Yanis | Remplacé au Sprint 3 par un script de mise à jour du serveur |
 
-## Rétrospective du Sprint 1 (équipe)
+## Rétrospective du Sprint 2 (équipe)
 
-Bilan global : le sprint s'est bien passé, l'objectif est atteint et le PO est satisfait.
+Bilan global : l'objectif du sprint est atteint pour le partage par lien, mais la suppression d'un fichier est reportée.
 
 **Ce qui a bien marché**
 
-- Les quatre US engagées ont été livrées et s'enchaînent de bout en bout : création de compte, connexion, upload, téléchargement.
-- Le découpage par personne a permis d'avancer en parallèle sans se bloquer : l'upload a été développé avant la connexion grâce à un utilisateur provisoire, remplacé ensuite sans toucher au reste du code.
-- La stack choisie (Next.js + Prisma, cf. ADR-001) n'a posé aucun blocage technique.
-- Chaque US livrée est documentée : section API du README et diagramme de séquence.
-- Les fusions dans `main` se sont faites sans conflit.
+- Les tâches reportées du Sprint 1 ont été terminées dès le début de la séance.
+- Un utilisateur peut lister ses fichiers et les partager par lien.
+- L'application est déployée sur le serveur de l'université et accessible à toute l'équipe.
+- Jira est tenu à jour (responsables, statuts, nouvelles US).
 
 **Ce qui peut être amélioré**
 
-- US-A2 a été livrée le lendemain de la clôture du sprint : les US dont d'autres dépendent sont à démarrer en premier.
-- La répartition des US a changé en cours de sprint (US-A1 et US-A2) sans être reportée tout de suite dans le backlog.
-- Plusieurs fusions dans `main` ont été faites sans relecture par un autre membre, contrairement à la Definition of Done.
+- Tout le travail se fait pendant les séances : aucun commit entre la séance 2 et la séance 3.
+- Le planning prévu (15h) dépasse le temps disponible dans une séance de 3h à 4 personnes (12h).
+- US-B4 est marquée terminée dans le Sprint 2 sur Jira alors qu'elle a été réalisée plus tard.
+- Les relectures par un autre membre restent rares, malgré l'action retenue au Sprint 1.
 
-**Actions d'amélioration retenues pour le Sprint 2**
+**Actions d'amélioration retenues pour le Sprint 3**
 
-- Fusionner dans `main` dès qu'une US est terminée, après mise à jour de sa branche depuis `main`.
-- Faire relire chaque US par un autre membre avant de la passer à « Terminé ».
-- Mettre à jour Jira dès qu'une US change de responsable ou de statut.
-- Prévenir l'équipe à chaque nouvelle migration Prisma.
+- Avancer régulièrement pendant le sprint, avec un point d'avancement sur Discord en milieu de sprint.
+- Passer par une pull request relue par un autre membre pour chaque US.
+- Quand plusieurs US touchent les mêmes fichiers, se coordonner avant de commencer et fusionner au plus tôt.
+- Ne passer une US à « Terminé » dans Jira qu'une fois fusionnée dans `main`.
 
 ---
 
