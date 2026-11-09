@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { isShareLinkUnlocked, setShareUnlockCookie } from "@/lib/share-auth";
 
 // US-C3 : Consulter les métadonnées publiques d'un fichier partagé.
+// US-D3 : expose l'état du quota de téléchargements.
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ token: string }> }
@@ -28,7 +29,6 @@ export async function GET(
     return Response.json({ error: "Lien de partage introuvable ou expiré." }, { status: 404 });
   }
 
-  // Vérification d'expiration si définie (préparation Sprint 3 / US-D1)
   if (shareLink.expiresAt && shareLink.expiresAt < new Date()) {
     return Response.json({ error: "Ce lien de partage a expiré." }, { status: 410 });
   }
@@ -46,15 +46,26 @@ export async function GET(
     }
   }
 
+  const remainingDownloads =
+    shareLink.maxDownloads === null
+      ? null
+      : Math.max(0, shareLink.maxDownloads - shareLink.downloadCount);
+  const exhausted = remainingDownloads === 0;
+
   return Response.json({
     token: shareLink.token,
     file: shareLink.file,
     sharedAt: shareLink.createdAt,
     expiresAt: shareLink.expiresAt,
     passwordProtected: Boolean(shareLink.password),
+    maxDownloads: shareLink.maxDownloads,
+    downloadCount: shareLink.downloadCount,
+    remainingDownloads,
+    exhausted,
   });
 }
 
+// POST : déverrouillage par mot de passe — inchangé.
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ token: string }> }

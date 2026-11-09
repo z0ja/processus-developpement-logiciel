@@ -78,23 +78,35 @@ export async function GET(request: Request) {
       updatedAt: true,
       version: true, // US-G1
       shareLinks: {
-        select: { id: true, token: true, createdAt: true, password: true, expiresAt: true },
+        select: {
+          id: true,
+          token: true,
+          createdAt: true,
+          password: true,
+          expiresAt: true,
+          maxDownloads: true,   // ← US-D3
+          downloadCount: true,  // ← US-D3
+        },
         take: 1,
         orderBy: { createdAt: "desc" },
       },
-      _count: { select: { shares: true } }, // US-C2 : nombre d'utilisateurs destinataires
+      _count: { select: { fileShares: true } },
     },
   });
 
   const sanitized = files.map((f) => ({
     ...f,
-    shareLinks: f.shareLinks.map(({ id, token, createdAt, password, expiresAt }) => ({
-      id,
-      token,
-      createdAt,
-      expiresAt,
-      hasPassword: Boolean(password),
-    })),
+    shareLinks: f.shareLinks.map(
+      ({ id, token, createdAt, password, expiresAt, maxDownloads, downloadCount }) => ({
+        id,
+        token,
+        createdAt,
+        expiresAt,
+        hasPassword: Boolean(password),
+        maxDownloads,
+        downloadCount,
+      })
+    ),
   }));
 
   return Response.json(sanitized);
